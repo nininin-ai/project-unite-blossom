@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileText, MapPin } from "lucide-react";
+import { ArrowLeft, Building2, FileText, MapPin, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -11,6 +11,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+
+/** Generate Pappers URL from company name + SIREN */
+const getPappersUrl = (name: string, siren: string) => {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return `https://www.pappers.fr/entreprise/${slug}-${siren}`;
+};
 
 const AssetDetail = () => {
   const { id } = useParams();
@@ -29,6 +39,10 @@ const AssetDetail = () => {
   const chargeData = asset.charges.map((c) => ({ name: c.nature, value: c.annualAmount }));
   const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)", "hsl(38,92%,50%)", "hsl(0,72%,51%)", "hsl(270,50%,50%)"];
   const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
+
+  // Floor vacancy data for the table
+  const totalFloorSurface = asset.floors.reduce((s, f) => s + f.surface, 0);
+  const totalFloorVacant = asset.floors.reduce((s, f) => s + (f.vacant ? f.surface : 0), 0);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -73,6 +87,7 @@ const AssetDetail = () => {
         </TabsList>
 
         <TabsContent value="occupation" className="space-y-4">
+          {/* Tenant table */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -105,6 +120,27 @@ const AssetDetail = () => {
                     <SheetContent>
                       <SheetHeader><SheetTitle>{t.name}</SheetTitle></SheetHeader>
                       <div className="mt-6 space-y-4">
+                        {/* Pappers link */}
+                        {t.siren && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-foreground">Informations entreprise</h4>
+                            <a
+                              href={getPappersUrl(t.name, t.siren)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors"
+                            >
+                              <div className="h-10 w-10 rounded-lg bg-[hsl(220,55%,18%)] flex items-center justify-center text-white font-bold text-sm">
+                                P
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">Voir sur Pappers</p>
+                                <p className="text-xs text-muted-foreground">SIREN : {t.siren}</p>
+                              </div>
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            </a>
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <h4 className="text-sm font-semibold text-foreground">Documents liés</h4>
                           <div className="space-y-2">
@@ -132,6 +168,50 @@ const AssetDetail = () => {
                   </Sheet>
                 ))}
               </tbody>
+            </table>
+          </motion.div>
+
+          {/* Surfaces vacantes par étage */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Surfaces vacantes par étage</h3>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Étage", "Type", "Surface totale", "Surface vacante (m²)", "% Vacance"].map((h) => (
+                    <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {asset.floors.map((f) => {
+                  const vacantSurface = f.vacant ? f.surface : 0;
+                  const vacPct = ((vacantSurface / f.surface) * 100).toFixed(1);
+                  return (
+                    <tr key={f.floor} className="border-b border-border/50">
+                      <td className="py-3 px-3 font-medium text-foreground">Étage {f.floor}</td>
+                      <td className="py-3 px-3"><span className="badge-neutral">{f.type}</span></td>
+                      <td className="py-3 px-3 text-foreground">{f.surface.toLocaleString("fr-FR")} m²</td>
+                      <td className="py-3 px-3 text-muted-foreground">{vacantSurface > 0 ? `${vacantSurface.toLocaleString("fr-FR")} m²` : "–"}</td>
+                      <td className="py-3 px-3">
+                        <span className={`font-semibold ${+vacPct > 0 ? "text-warning" : "text-success"}`}>{vacPct}%</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-border">
+                  <td className="py-3 px-3 font-semibold text-foreground">Total</td>
+                  <td className="py-3 px-3"></td>
+                  <td className="py-3 px-3 font-semibold text-foreground">{totalFloorSurface.toLocaleString("fr-FR")} m²</td>
+                  <td className="py-3 px-3 font-semibold text-foreground">{totalFloorVacant > 0 ? `${totalFloorVacant.toLocaleString("fr-FR")} m²` : "–"}</td>
+                  <td className="py-3 px-3">
+                    <span className={`font-semibold ${totalFloorVacant > 0 ? "text-warning" : "text-success"}`}>
+                      {((totalFloorVacant / totalFloorSurface) * 100).toFixed(1)}%
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </motion.div>
 
