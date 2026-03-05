@@ -1,9 +1,11 @@
 import { useParams, Link } from "react-router-dom";
 import { mockDeals, type Deal } from "@/data/mockData";
 import { getAutoPriority, getCapRateValue, getValuationLabel, getRentalPotential, generateBusinessPlan } from "@/lib/dealUtils";
+import { getAssetImage } from "@/lib/assetImages";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, Calculator, ChevronDown, FileText, Mail, MapPin, Phone, Plus, TrendingUp, User } from "lucide-react";
+import { ArrowLeft, Building2, Calculator, ChevronDown, FileText, Mail, MapPin, Phone, Plus, Printer, TrendingUp, User } from "lucide-react";
 import DealMap from "@/components/DealMap";
+import logoEquimmox from "@/assets/logo-equimmox.png";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,19 +88,55 @@ const InvestmentCommittee = () => {
   const priorityBadgeClass = autoPriority === "Élevée" ? "badge-danger" : autoPriority === "Moyenne" ? "badge-warning" : "badge-neutral";
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto">
-      <Link to="/deals" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Retour au Deal Flow
-      </Link>
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto print-area">
+      <div className="flex items-center justify-between no-print">
+        <Link to="/deals" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Retour au Deal Flow
+        </Link>
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
+        >
+          <Printer className="h-4 w-4" /> Imprimer One Pager
+        </button>
+      </div>
 
-      {/* Header */}
-      <motion.div {...anim(0)}>
-        <div className="flex items-center gap-3 mb-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Investment Committee</p>
-          <span className={priorityBadgeClass}>Priorité {autoPriority}</span>
+      {/* Print header with logo */}
+      <div className="hidden print-only">
+        <div className="flex items-center justify-between border-b pb-4 mb-4" style={{ borderColor: '#e5e5e5' }}>
+          <img src={logoEquimmox} alt="EquimmoX" style={{ width: '105px' }} />
+          <div className="text-right">
+            <p style={{ fontSize: '10px', color: '#999' }}>Investment Committee — One Pager Confidentiel</p>
+            <p style={{ fontSize: '10px', color: '#999' }}>{new Date().toLocaleDateString("fr-FR")}</p>
+          </div>
         </div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{deal.opportunity}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{data.assetType} • {data.city}</p>
+      </div>
+
+      {/* Header with photo */}
+      <motion.div {...anim(0)}>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="lg:w-80 shrink-0 space-y-3">
+            <img
+              src={getAssetImage(data.assetType)}
+              alt={deal.opportunity}
+              className="w-full h-44 rounded-xl object-cover border border-border/60"
+            />
+            <DealMap
+              address={deal.address || data.city}
+              city={data.city}
+              name={deal.opportunity}
+              className="h-32"
+            />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Investment Committee</p>
+              <span className={priorityBadgeClass}>Priorité {autoPriority}</span>
+            </div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{deal.opportunity}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{data.assetType} • {data.city}</p>
+          </div>
+        </div>
       </motion.div>
 
       {/* A. Informations Générales */}
@@ -157,26 +195,18 @@ const InvestmentCommittee = () => {
         <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-accent" /> C. Localisation & Marché
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {[
-              { label: "Adresse", value: deal.address || data.city },
-              { label: "Accessibilité", value: data.location.accessibility },
-              { label: "Dynamique secteur", value: data.location.sectorDynamics },
-              { label: "Taux vacance", value: data.location.vacancySubmarket },
-            ].map((item) => (
-              <div key={item.label}>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
-                <p className="font-medium text-foreground mt-0.5">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <DealMap
-            address={deal.address || data.city}
-            city={data.city}
-            name={deal.opportunity}
-            className="h-[220px]"
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          {[
+            { label: "Adresse", value: deal.address || data.city },
+            { label: "Accessibilité", value: data.location.accessibility },
+            { label: "Dynamique secteur", value: data.location.sectorDynamics },
+            { label: "Taux vacance", value: data.location.vacancySubmarket },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
+              <p className="font-medium text-foreground mt-0.5">{item.value}</p>
+            </div>
+          ))}
         </div>
       </motion.div>
 
@@ -400,7 +430,7 @@ const InvestmentCommittee = () => {
       </motion.div>
 
       {/* Documents */}
-      <motion.div {...anim(7)} className="kpi-card">
+      <motion.div {...anim(7)} className="kpi-card no-print">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-foreground">Documents associés</h2>
           <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
