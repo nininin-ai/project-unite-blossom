@@ -42,29 +42,11 @@ const DealFlow = () => {
   const toggleSelect = (id: string) => { setSelectedDeals(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
   const toggleAll = () => { if (selectedDeals.size === filtered.length) setSelectedDeals(new Set()); else setSelectedDeals(new Set(filtered.map(d => d.id))); };
 
-  const handleExportPDF = async () => {
-    const { default: jsPDF } = await import("jspdf");
-    const { getCapRateValue, getValuationLabel, getRentalPotential, generateBusinessPlan } = await import("@/lib/dealUtils");
-    const doc = new jsPDF("p", "mm", "a4");
+  const handleExportPDF = () => {
     const selected = enrichedDeals.filter(d => selectedDeals.has(d.id));
-    const W = 210; const M = 15;
-    const drawLine = (y: number) => { doc.setDrawColor(200); doc.line(M, y, W - M, y); };
-    const labelValue = (label: string, value: string, x: number, y: number) => { doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(120); doc.text(label, x, y); doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(40); doc.text(value, x, y + 4); };
-    selected.forEach((deal, idx) => {
-      if (idx > 0) doc.addPage();
-      let y = M;
-      doc.setFillColor(30, 30, 35); doc.rect(0, 0, W, 32, "F");
-      doc.setFontSize(7); doc.setTextColor(180); doc.setFont("helvetica", "normal"); doc.text("EQUIMMOX — One Pager", M, 8);
-      doc.setFontSize(16); doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.text(deal.opportunity, M, 18);
-      doc.setFontSize(9); doc.setTextColor(200); doc.setFont("helvetica", "normal"); doc.text(`${deal.assetType || "–"} • ${deal.city || ""}`, M, 24);
-      y = 40;
-      const bp = generateBusinessPlan(deal);
-      const metrics = [["Prix demandé", formatCurrency(deal.amount)], ["Rendement", `${deal.yield.toFixed(1)}%`], ["TRI estimé", `${deal.triEstimated}%`], ["Score", `${deal.score}/100`]];
-      metrics.forEach(([label, value], i) => labelValue(label, value, M + (i % 4) * 42, y));
-      y += 16; drawLine(y); y += 6;
-      doc.setFontSize(6); doc.setTextColor(160); doc.text("Document généré automatiquement par EQUIMMOX — Confidentiel", M, 287);
+    selected.forEach((deal) => {
+      window.open(`/deals/${deal.id}?print=true`, '_blank');
     });
-    doc.save(`EQUIMMOX_OnePagers_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -72,7 +54,7 @@ const DealFlow = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-foreground">Deal Flow</h1><p className="text-sm text-muted-foreground mt-1">Pipeline d'investissement • {enrichedDeals.length} opportunités</p></div>
         <div className="flex items-center gap-2">
-          {selectedDeals.size > 0 && <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"><Download className="h-4 w-4" />Exporter {selectedDeals.size} deal{selectedDeals.size > 1 ? "s" : ""} (PDF)</button>}
+          {selectedDeals.size > 0 && <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"><Download className="h-4 w-4" />One Pager {selectedDeals.size > 1 ? `(${selectedDeals.size})` : ""}</button>}
           <button onClick={() => setView("table")} className={`p-2 rounded-lg transition-colors ${view === "table" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"}`}><List className="h-4 w-4" /></button>
           <button onClick={() => setView("kanban")} className={`p-2 rounded-lg transition-colors ${view === "kanban" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"}`}><Kanban className="h-4 w-4" /></button>
         </div>
