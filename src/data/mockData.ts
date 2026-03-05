@@ -15,6 +15,7 @@ export interface Tenant {
   unpaidAmount?: number;
   surface: number;
   floor: number;
+  siren?: string;
 }
 
 export interface Charge {
