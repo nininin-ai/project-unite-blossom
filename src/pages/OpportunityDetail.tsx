@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import DealMap from "@/components/DealMap";
 import logoEquimmox from "@/assets/logo-equimmox.png";
+import { getAssetImage } from "@/lib/assetImages";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
