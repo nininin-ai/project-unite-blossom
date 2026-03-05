@@ -55,16 +55,16 @@ export function calculateIRR(cashflows: number[]): number {
 function getAssetTypeParams(assetType?: string) {
   const type = (assetType || "Bureau").toLowerCase();
   if (type.includes("commerce") || type.includes("retail")) {
-    return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.0125, exitCapRate: 0.055, plusValueRate: 0.15, indexLabel: "ILC" };
+    return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.0125, exitCapRate: 0.055, plusValueRate: 0.15, chargesRate: 0.08, indexLabel: "ILC" };
   }
   if (type.includes("logistique")) {
-    return { acquisitionFeesRate: 0.07, indexation: 0.02, capexRate: 0.01, exitCapRate: 0.045, plusValueRate: 0.20, indexLabel: "ILAT" };
+    return { acquisitionFeesRate: 0.07, indexation: 0.02, capexRate: 0.01, exitCapRate: 0.045, plusValueRate: 0.20, chargesRate: 0.07, indexLabel: "ILAT" };
   }
   if (type.includes("data") || type.includes("datacenter")) {
-    return { acquisitionFeesRate: 0.065, indexation: 0.025, capexRate: 0.0075, exitCapRate: 0.055, plusValueRate: 0.125, indexLabel: "Contractuelle" };
+    return { acquisitionFeesRate: 0.065, indexation: 0.025, capexRate: 0.0075, exitCapRate: 0.055, plusValueRate: 0.125, chargesRate: 0.05, indexLabel: "Contractuelle" };
   }
   // Bureaux (default)
-  return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.025, exitCapRate: 0.0525, plusValueRate: 0.15, indexLabel: "ILAT" };
+  return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.025, exitCapRate: 0.0525, plusValueRate: 0.15, chargesRate: 0.15, indexLabel: "ILAT" };
 }
 
 export { getAssetTypeParams };
