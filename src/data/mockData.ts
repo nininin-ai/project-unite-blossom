@@ -412,9 +412,9 @@ export const mockAssets: Asset[] = [
     yield: 7.4,
     riskScore: 55,
     tenants: [
-      { id: "t19", name: "Decathlon", startDate: "2020-01-01", endDate: "2029-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 75000, currentRent: 420000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 2500, floor: 0 },
-      { id: "t20", name: "Cultura", startDate: "2021-03-01", endDate: "2030-02-28", triennialDate: "2027-03-01", leaseType: "3/6/9", deposit: 40000, currentRent: 250000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0 },
-      { id: "t21", name: "Action", startDate: "2023-01-01", endDate: "2032-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 20000, currentRent: 150000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 1 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 850, floor: 0 },
+      { id: "t19", name: "Decathlon", startDate: "2020-01-01", endDate: "2029-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 75000, currentRent: 420000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 2500, floor: 0, siren: "306138900" },
+      { id: "t20", name: "Cultura", startDate: "2021-03-01", endDate: "2030-02-28", triennialDate: "2027-03-01", leaseType: "3/6/9", deposit: 40000, currentRent: 250000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0, siren: "410383626" },
+      { id: "t21", name: "Action", startDate: "2023-01-01", endDate: "2032-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 20000, currentRent: 150000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 1 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 850, floor: 0, siren: "521809498" },
     ],
     charges: [
       { id: "c27", nature: "Taxe foncière", annualAmount: 88000, rebillable: false, comment: "" },
