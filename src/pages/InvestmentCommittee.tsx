@@ -430,7 +430,7 @@ const InvestmentCommittee = () => {
       </motion.div>
 
       {/* Documents */}
-      <motion.div {...anim(7)} className="kpi-card">
+      <motion.div {...anim(7)} className="kpi-card no-print">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-foreground">Documents associés</h2>
           <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
