@@ -1,4 +1,4 @@
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { mockDeals, type Deal } from "@/data/mockData";
 import { getAutoPriority, getCapRateValue, getValuationLabel, getRentalPotential, generateBusinessPlan } from "@/lib/dealUtils";
 import { getAssetImage } from "@/lib/assetImages";
@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Building2, Calculator, ChevronDown, FileText, Mail, MapPin, Phone, Plus, Printer, TrendingUp, User } from "lucide-react";
 import DealMap from "@/components/DealMap";
 import logoEquimmox from "@/assets/logo-equimmox.png";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
