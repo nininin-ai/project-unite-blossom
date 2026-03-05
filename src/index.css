@@ -161,10 +161,30 @@
 
 /* Print styles */
 @media print {
-  body {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     background: white !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* Prevent app layout clipping (h-screen + overflow-hidden) */
+  .h-screen,
+  .min-h-screen,
+  .max-h-screen {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    overflow: visible !important;
   }
 
   aside,
@@ -179,10 +199,12 @@
   .print-area {
     padding: 0 !important;
     max-width: 100% !important;
+    overflow: visible !important;
   }
 
   main {
     overflow: visible !important;
+    height: auto !important;
   }
 
   .kpi-card {
