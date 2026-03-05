@@ -157,6 +157,16 @@ const handleExportOnePager = async (deals: Deal[]) => {
     data.capexProjection.forEach(c => { doc.text(`${c.year} – ${c.description}: ${formatCurrency(c.amount)}`, M, y); y += 4; });
     y += 2; drawLine(y); y += 6;
 
+    // Hypothèses Marché
+    y = checkPage(y, 20);
+    y = sectionTitle(`Hypothèses de marché — ${data.assetType}`, y);
+    [["Frais acquisition", `${(bp.params.acquisitionFeesRate * 100).toFixed(1)}%`], ["Indexation", `${bp.params.indexLabel} (${(bp.params.indexation * 100).toFixed(0)}%/an)`], ["CAPEX/an", `${(bp.params.capexRate * 100).toFixed(1)}%`], ["Cap rate sortie", `${(bp.params.exitCapRate * 100).toFixed(1)}%`], ["Plus-value 10a", `${(bp.params.plusValueRate * 100).toFixed(0)}%`]].forEach((item, i) => {
+      const cw5 = CW / 5;
+      label(item[0], M + (i % 5) * cw5, y);
+      value(item[1], M + (i % 5) * cw5, y + 4);
+    });
+    y += 12; drawLine(y); y += 6;
+
     // H. TRI & Business Plan
     y = checkPage(y, 40);
     y = sectionTitle("H. TRI & Business Plan", y);

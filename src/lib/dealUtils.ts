@@ -51,18 +51,46 @@ export function calculateIRR(cashflows: number[]): number {
   return rate;
 }
 
+/** Asset-type-specific market parameters */
+function getAssetTypeParams(assetType?: string) {
+  const type = (assetType || "Bureau").toLowerCase();
+  if (type.includes("commerce") || type.includes("retail")) {
+    return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.0125, exitCapRate: 0.055, plusValueRate: 0.15, indexLabel: "ILC" };
+  }
+  if (type.includes("logistique")) {
+    return { acquisitionFeesRate: 0.07, indexation: 0.02, capexRate: 0.01, exitCapRate: 0.045, plusValueRate: 0.20, indexLabel: "ILAT" };
+  }
+  if (type.includes("data") || type.includes("datacenter")) {
+    return { acquisitionFeesRate: 0.065, indexation: 0.025, capexRate: 0.0075, exitCapRate: 0.055, plusValueRate: 0.125, indexLabel: "Contractuelle" };
+  }
+  // Bureaux (default)
+  return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.025, exitCapRate: 0.0525, plusValueRate: 0.15, indexLabel: "ILAT" };
+}
+
+export { getAssetTypeParams };
+
 /** Generate mini business plan cashflows */
 export function generateBusinessPlan(deal: Deal) {
-  const annualRent = deal.annualRent || 0;
-  const charges = deal.charges || 0;
-  const capex = deal.capex || 0;
+  const params = getAssetTypeParams(deal.assetType);
   const holdingPeriod = deal.holdingPeriod || 10;
   const acquisitionPrice = deal.amount;
-  const acquisitionFees = deal.acquisitionFees || 0;
-  const exitPrice = deal.exitPrice || acquisitionPrice;
+
+  // Use deal-specific values or derive from asset type params
+  const acquisitionFees = deal.acquisitionFees || Math.round(acquisitionPrice * params.acquisitionFeesRate);
+  const annualRent = deal.annualRent || Math.round((deal.amount * deal.yield) / 100);
+  const charges = deal.charges || Math.round(annualRent * 0.08);
+  const annualCapex = deal.capex || Math.round(acquisitionPrice * params.capexRate);
   const surface = deal.surface || 1;
   const occupiedSurface = deal.occupiedSurface || surface;
   const rentPerSqm = deal.rentPerSqm || (annualRent / occupiedSurface);
+
+  // Exit price: use deal value or calculate from cap rate + plus-value
+  const exitPrice = deal.exitPrice || Math.round(
+    Math.max(
+      (annualRent * Math.pow(1 + params.indexation, holdingPeriod)) / params.exitCapRate,
+      acquisitionPrice * (1 + params.plusValueRate)
+    )
+  );
 
   const potentialRent = surface * rentPerSqm;
   const totalInvestment = acquisitionPrice + acquisitionFees;
@@ -79,9 +107,14 @@ export function generateBusinessPlan(deal: Deal) {
   const irrCashflows = [-totalInvestment];
 
   for (let i = 0; i < holdingPeriod; i++) {
-    const yearRent = annualRent * Math.pow(1.02, i);
+    const yearRent = annualRent * Math.pow(1 + params.indexation, i);
     const yearCharges = charges * Math.pow(1.015, i);
-    const yearCapex = i === 0 ? capex * 0.3 : i === Math.floor(holdingPeriod / 2) ? capex * 0.4 : capex * 0.3 / (holdingPeriod - 2);
+    // CAPEX: heavier at mid-life and year 1
+    const yearCapex = i === 0
+      ? annualCapex * 1.5
+      : i === Math.floor(holdingPeriod / 2)
+        ? annualCapex * 2
+        : annualCapex;
     const exitValue = i === holdingPeriod - 1 ? exitPrice : 0;
     const netCashflow = yearRent - yearCharges - yearCapex;
 
@@ -111,5 +144,6 @@ export function generateBusinessPlan(deal: Deal) {
     potentialRent: Math.round(potentialRent),
     currentRent: annualRent,
     exitPrice,
+    params,
   };
 }

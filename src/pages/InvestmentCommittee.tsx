@@ -361,6 +361,27 @@ const InvestmentCommittee = () => {
         </div>
       </motion.div>
 
+      {/* Hypothèses Marché */}
+      <motion.div {...anim(5.5)} className="kpi-card">
+        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-accent" /> Hypothèses de marché — {data.assetType}
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          {[
+            { label: "Frais d'acquisition", value: `${(bp.params.acquisitionFeesRate * 100).toFixed(1)}%` },
+            { label: "Indexation loyers", value: `${bp.params.indexLabel} (${(bp.params.indexation * 100).toFixed(0)}%/an)` },
+            { label: "CAPEX moyen / an", value: `${(bp.params.capexRate * 100).toFixed(1)}%` },
+            { label: "Cap rate de sortie", value: `${(bp.params.exitCapRate * 100).toFixed(1)}%` },
+            { label: "Plus-value 10 ans", value: `${(bp.params.plusValueRate * 100).toFixed(0)}%` },
+          ].map((item) => (
+            <div key={item.label} className="p-3 rounded-lg bg-muted/50">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
+              <p className="text-sm font-bold text-foreground mt-1">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
       {/* H. TRI */}
       <motion.div {...anim(6)} className="kpi-card">
         <div className="flex items-center justify-between">
