@@ -6,6 +6,7 @@ import {
   Building2,
   ChevronDown,
   MapPin,
+  Printer,
   Send,
   ThumbsDown,
   TrendingUp,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import DealMap from "@/components/DealMap";
+import logoEquimmox from "@/assets/logo-equimmox.png";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
