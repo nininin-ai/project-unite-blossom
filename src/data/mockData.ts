@@ -351,8 +351,8 @@ export const mockAssets: Asset[] = [
     yield: 6.2,
     riskScore: 28,
     tenants: [
-      { id: "t15", name: "Sephora", startDate: "2018-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "3/6/9", deposit: 130000, currentRent: 520000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 550, floor: 0 },
-      { id: "t16", name: "Maison Ladurée", startDate: "2019-06-01", endDate: "2028-05-31", triennialDate: "2025-06-01", leaseType: "3/6/9", deposit: 45000, currentRent: 260000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Forfaitaire", unpaid: false, surface: 300, floor: 0 },
+      { id: "t15", name: "Sephora", startDate: "2018-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "3/6/9", deposit: 130000, currentRent: 520000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 550, floor: 0, siren: "393712286" },
+      { id: "t16", name: "Maison Ladurée", startDate: "2019-06-01", endDate: "2028-05-31", triennialDate: "2025-06-01", leaseType: "3/6/9", deposit: 45000, currentRent: 260000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Forfaitaire", unpaid: false, surface: 300, floor: 0, siren: "775670284" },
     ],
     charges: [
       { id: "c21", nature: "Taxe foncière", annualAmount: 95000, rebillable: false, comment: "" },
