@@ -14,9 +14,9 @@ const Layout = () => {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col bg-sidebar border-r border-sidebar-border">
-        <div className="flex items-center justify-center px-4 py-5 border-b border-sidebar-border">
-          <img src={logoEquimmox} alt="EquimmoX" className="w-full px-2" />
+      <aside className="hidden md:flex w-[125px] flex-col bg-sidebar border-r border-sidebar-border">
+        <div className="flex items-center justify-center px-2 py-5 border-b border-sidebar-border">
+          <img src={logoEquimmox} alt="EquimmoX" style={{ width: '105px' }} />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
