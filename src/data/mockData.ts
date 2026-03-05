@@ -15,6 +15,7 @@ export interface Tenant {
   unpaidAmount?: number;
   surface: number;
   floor: number;
+  siren?: string;
 }
 
 export interface Charge {
@@ -182,8 +183,8 @@ export const mockAssets: Asset[] = [
     yield: 6.8,
     riskScore: 72,
     tenants: [
-      { id: "t1", name: "Deloitte France", startDate: "2020-01-01", endDate: "2028-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 85000, currentRent: 420000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 1400, floor: 12 },
-      { id: "t2", name: "Cabinet Mercer", startDate: "2021-06-01", endDate: "2027-05-31", triennialDate: "2024-06-01", leaseType: "3/6/9", deposit: 62000, currentRent: 310000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1050, floor: 10 },
+      { id: "t1", name: "Deloitte France", startDate: "2020-01-01", endDate: "2028-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 85000, currentRent: 420000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 1400, floor: 12, siren: "434209797" },
+      { id: "t2", name: "Mercer France", startDate: "2021-06-01", endDate: "2027-05-31", triennialDate: "2024-06-01", leaseType: "3/6/9", deposit: 62000, currentRent: 310000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1050, floor: 10, siren: "390589455" },
       { id: "t3", name: "StartupFlow SAS", startDate: "2023-01-01", endDate: "2025-12-31", triennialDate: "2025-01-01", leaseType: "Dérogatoire", deposit: 22000, currentRent: 130000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Loyers progressifs", chargesManagement: "Forfaitaire", unpaid: true, unpaidAmount: 12500, surface: 420, floor: 8 },
       { id: "t4", name: "LegalTech Corp", startDate: "2022-03-01", endDate: "2031-02-28", triennialDate: "2025-03-01", leaseType: "3/6/9", deposit: 75000, currentRent: 400000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Travaux preneur 50k€", chargesManagement: "Réel", unpaid: false, surface: 950, floor: 11 },
     ],
@@ -219,9 +220,9 @@ export const mockAssets: Asset[] = [
     yield: 6.7,
     riskScore: 58,
     tenants: [
-      { id: "t5", name: "Boulanger SA", startDate: "2021-09-01", endDate: "2030-08-31", triennialDate: "2027-09-01", leaseType: "3/6/9", deposit: 45000, currentRent: 280000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0 },
+      { id: "t5", name: "Boulanger", startDate: "2021-09-01", endDate: "2030-08-31", triennialDate: "2027-09-01", leaseType: "3/6/9", deposit: 45000, currentRent: 280000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0, siren: "347384570" },
       { id: "t6", name: "Pharmacie du Centre", startDate: "2022-01-01", endDate: "2031-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 35000, currentRent: 180000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 2 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 600, floor: 0 },
-      { id: "t7", name: "Fitness Park", startDate: "2023-06-01", endDate: "2032-05-31", triennialDate: "2026-06-01", leaseType: "3/6/9", deposit: 25000, currentRent: 160000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: true, unpaidAmount: 8200, surface: 400, floor: 1 },
+      { id: "t7", name: "Fitness Park", startDate: "2023-06-01", endDate: "2032-05-31", triennialDate: "2026-06-01", leaseType: "3/6/9", deposit: 25000, currentRent: 160000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: true, unpaidAmount: 8200, surface: 400, floor: 1, siren: "327126827" },
     ],
     charges: [
       { id: "c6", nature: "Taxe foncière", annualAmount: 72000, rebillable: false, comment: "" },
@@ -284,7 +285,7 @@ export const mockAssets: Asset[] = [
     yield: 7.9,
     riskScore: 82,
     tenants: [
-      { id: "t10", name: "SAP France", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 200000, currentRent: 1200000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 4000, floor: 1 },
+      { id: "t10", name: "SAP France", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 200000, currentRent: 1200000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 4000, floor: 1, siren: "379821994" },
       { id: "t11", name: "DataViz SAS", startDate: "2023-03-01", endDate: "2026-02-28", triennialDate: "2026-03-01", leaseType: "Dérogatoire", deposit: 45000, currentRent: 280000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 6 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2 },
       { id: "t12", name: "BioTech Lab", startDate: "2022-09-01", endDate: "2025-08-31", triennialDate: "2025-09-01", leaseType: "3/6/9", deposit: 30000, currentRent: 270000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Travaux bailleur 80k€", chargesManagement: "Réel", unpaid: false, surface: 500, floor: 3 },
     ],
