@@ -78,19 +78,21 @@ export function generateBusinessPlan(deal: Deal) {
   // Use deal-specific values or derive from asset type params
   const acquisitionFees = deal.acquisitionFees || Math.round(acquisitionPrice * params.acquisitionFeesRate);
   const annualRent = deal.annualRent || Math.round((deal.amount * deal.yield) / 100);
-  const charges = deal.charges || Math.round(annualRent * 0.08);
+  const charges = deal.charges || Math.round(annualRent * params.chargesRate);
   const annualCapex = deal.capex || Math.round(acquisitionPrice * params.capexRate);
   const surface = deal.surface || 1;
   const occupiedSurface = deal.occupiedSurface || surface;
   const rentPerSqm = deal.rentPerSqm || (annualRent / occupiedSurface);
 
-  // Exit price: use deal value or calculate from cap rate + plus-value
-  const exitPrice = deal.exitPrice || Math.round(
-    Math.max(
-      (annualRent * Math.pow(1 + params.indexation, holdingPeriod)) / params.exitCapRate,
-      acquisitionPrice * (1 + params.plusValueRate)
-    )
-  );
+  // Plus-value dynamique : plus l'actif est sous-évalué (yield élevé vs cap rate sortie), plus la plus-value est forte
+  const yieldSpread = deal.yield / 100 - params.exitCapRate; // écart rendement achat vs marché sortie
+  const dynamicPlusValue = params.plusValueRate + Math.max(0, yieldSpread * 3); // bonus si sous-évalué
+  const adjustedPlusValue = Math.min(dynamicPlusValue, 0.40); // plafonné à 40%
+
+  // Exit price via cap rate de sortie sur loyers indexés, ajusté par plus-value dynamique
+  const exitViaCapRate = (annualRent * Math.pow(1 + params.indexation, holdingPeriod)) / params.exitCapRate;
+  const exitViaPlusValue = acquisitionPrice * (1 + adjustedPlusValue);
+  const exitPrice = deal.exitPrice || Math.round(Math.max(exitViaCapRate, exitViaPlusValue));
 
   const potentialRent = surface * rentPerSqm;
   const totalInvestment = acquisitionPrice + acquisitionFees;
