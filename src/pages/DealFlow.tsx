@@ -45,7 +45,7 @@ const DealFlow = () => {
   const handleExportPDF = () => {
     const selected = enrichedDeals.filter(d => selectedDeals.has(d.id));
     selected.forEach((deal) => {
-      window.open(`/deals/${deal.id}?print=true`, '_blank');
+      window.open(`/deals/${deal.id}`, '_blank');
     });
   };
 

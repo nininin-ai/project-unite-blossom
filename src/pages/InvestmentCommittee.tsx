@@ -66,18 +66,9 @@ function getCommitteeData(deal: Deal) {
 
 const InvestmentCommittee = () => {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
   const deal = mockDeals.find((d) => d.id === id);
   const [showBusinessPlan, setShowBusinessPlan] = useState(false);
   const [customCapRate, setCustomCapRate] = useState<string>("");
-
-  // Auto-print when opened from pipeline export
-  useEffect(() => {
-    if (searchParams.get("print") === "true") {
-      const timer = setTimeout(() => window.print(), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams]);
 
   if (!deal) return <div className="p-8 text-center text-muted-foreground">Deal introuvable</div>;
 
