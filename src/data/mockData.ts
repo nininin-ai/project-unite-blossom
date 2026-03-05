@@ -221,7 +221,7 @@ export const mockAssets: Asset[] = [
     riskScore: 58,
     tenants: [
       { id: "t5", name: "Boulanger", startDate: "2021-09-01", endDate: "2030-08-31", triennialDate: "2027-09-01", leaseType: "3/6/9", deposit: 45000, currentRent: 280000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0, siren: "347384570" },
-      { id: "t6", name: "Pharmacie du Centre", startDate: "2022-01-01", endDate: "2031-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 35000, currentRent: 180000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 2 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 600, floor: 0 },
+      { id: "t6", name: "Pharmacie du Centre", startDate: "2022-01-01", endDate: "2031-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 35000, currentRent: 180000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 2 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 600, floor: 0, siren: "451234567" },
       { id: "t7", name: "Fitness Park", startDate: "2023-06-01", endDate: "2032-05-31", triennialDate: "2026-06-01", leaseType: "3/6/9", deposit: 25000, currentRent: 160000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: true, unpaidAmount: 8200, surface: 400, floor: 1, siren: "327126827" },
     ],
     charges: [
