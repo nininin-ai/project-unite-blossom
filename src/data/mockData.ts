@@ -380,8 +380,8 @@ export const mockAssets: Asset[] = [
     yield: 6.5,
     riskScore: 65,
     tenants: [
-      { id: "t17", name: "CMA CGM Services", startDate: "2022-04-01", endDate: "2031-03-31", triennialDate: "2025-04-01", leaseType: "3/6/9", deposit: 70000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1600, floor: 1 },
-      { id: "t18", name: "Startup Medtech", startDate: "2023-09-01", endDate: "2026-08-31", triennialDate: "2026-09-01", leaseType: "Dérogatoire", deposit: 15000, currentRent: 200000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2 },
+      { id: "t17", name: "CMA CGM Services", startDate: "2022-04-01", endDate: "2031-03-31", triennialDate: "2025-04-01", leaseType: "3/6/9", deposit: 70000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1600, floor: 1, siren: "562024422" },
+      { id: "t18", name: "Startup Medtech", startDate: "2023-09-01", endDate: "2026-08-31", triennialDate: "2026-09-01", leaseType: "Dérogatoire", deposit: 15000, currentRent: 200000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2, siren: "923456781" },
     ],
     charges: [
       { id: "c24", nature: "Taxe foncière", annualAmount: 62000, rebillable: false, comment: "" },
