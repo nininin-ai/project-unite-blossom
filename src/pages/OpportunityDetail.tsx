@@ -36,13 +36,43 @@ const OpportunityDetail = () => {
         <Link to="/opportunities" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Retour aux opportunités
         </Link>
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
-        >
-          <Printer className="h-4 w-4" /> Imprimer
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/deals")}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+          >
+            <TrendingUp className="h-4 w-4" /> Intégrer au Deal Flow
+          </button>
+          <button
+            onClick={() => setShowReject(!showReject)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+          >
+            <ThumbsDown className="h-4 w-4" /> Rejeter
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
+          >
+            <Printer className="h-4 w-4" /> Imprimer
+          </button>
+        </div>
       </div>
+
+      {showReject && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-4 rounded-lg bg-destructive/5 border border-destructive/20 no-print">
+          <p className="text-sm font-medium text-foreground mb-2">Motif du rejet :</p>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            rows={3}
+            placeholder="Ex : Rendement insuffisant, risque locatif trop élevé…"
+          />
+          <button className="mt-2 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">
+            Confirmer le rejet
+          </button>
+        </motion.div>
+      )}
 
       {/* Print header with logo */}
       <div className="hidden print-only">
