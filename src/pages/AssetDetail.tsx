@@ -1,0 +1,258 @@
+import { useParams, Link } from "react-router-dom";
+import { mockAssets } from "@/data/mockData";
+import { motion } from "framer-motion";
+import { ArrowLeft, Building2, FileText, MapPin } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+
+const AssetDetail = () => {
+  const { id } = useParams();
+  const asset = mockAssets.find((a) => a.id === id);
+  const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
+
+  if (!asset) return <div className="p-8 text-center text-muted-foreground">Actif introuvable</div>;
+
+  const vacancyRate = ((asset.vacantSurface / asset.totalSurface) * 100).toFixed(1);
+  const floorData = asset.floors.map((f) => ({
+    name: `Ét. ${f.floor}`,
+    surface: f.surface,
+    vacant: f.vacant ? f.surface : 0,
+  }));
+
+  const chargeData = asset.charges.map((c) => ({ name: c.nature, value: c.annualAmount }));
+  const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)", "hsl(38,92%,50%)", "hsl(0,72%,51%)", "hsl(270,50%,50%)"];
+  const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
+
+  return (
+    <div className="p-6 lg:p-8 space-y-6">
+      <Link to="/assets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Retour au parc
+      </Link>
+
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
+            <Building2 className="h-6 w-6 text-accent" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{asset.name}</h1>
+            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+              <MapPin className="h-3.5 w-3.5" />
+              {asset.address}, {asset.city}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Loyer annuel", value: formatCurrency(asset.annualRent) },
+          { label: "Rendement", value: `${asset.yield}%` },
+          { label: "Vacance", value: `${vacancyRate}%` },
+          { label: "Score risque", value: `${asset.riskScore}/100` },
+        ].map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="kpi-card text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+            <p className="text-lg font-bold text-foreground mt-1">{s.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <Tabs defaultValue="occupation" className="space-y-4">
+        <TabsList className="bg-muted/50 p-1">
+          <TabsTrigger value="occupation" className="text-xs">Occupation</TabsTrigger>
+          <TabsTrigger value="charges" className="text-xs">Charges / Coûts</TabsTrigger>
+          <TabsTrigger value="info" className="text-xs">Informations</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="occupation" className="space-y-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Locataire", "Début", "Échéance", "Triennale", "Type", "Dépôt", "Loyer annuel", "Indice", "Accompagnement", "Charges", "Impayé"].map((h) => (
+                    <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {asset.tenants.map((t) => (
+                  <Sheet key={t.id}>
+                    <SheetTrigger asChild>
+                      <tr className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => setSelectedTenant(t.id)}>
+                        <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{t.name}</td>
+                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{new Date(t.startDate).toLocaleDateString("fr-FR")}</td>
+                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{new Date(t.endDate).toLocaleDateString("fr-FR")}</td>
+                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{new Date(t.triennialDate).toLocaleDateString("fr-FR")}</td>
+                        <td className="py-3 px-3"><span className="badge-neutral">{t.leaseType}</span></td>
+                        <td className="py-3 px-3 text-muted-foreground">{formatCurrency(t.deposit)}</td>
+                        <td className="py-3 px-3 font-medium text-foreground">{formatCurrency(t.currentRent)}</td>
+                        <td className="py-3 px-3 text-muted-foreground">{t.index} ({t.indexRef})</td>
+                        <td className="py-3 px-3 text-muted-foreground text-xs">{t.accompaniment}</td>
+                        <td className="py-3 px-3"><span className="badge-neutral">{t.chargesManagement}</span></td>
+                        <td className="py-3 px-3">
+                          {t.unpaid ? <span className="badge-danger">{formatCurrency(t.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}
+                        </td>
+                      </tr>
+                    </SheetTrigger>
+                    <SheetContent>
+                      <SheetHeader><SheetTitle>{t.name}</SheetTitle></SheetHeader>
+                      <div className="mt-6 space-y-4">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-foreground">Documents liés</h4>
+                          <div className="space-y-2">
+                            {["Bail commercial signé", "Avenant n°1", "État des lieux"].map((doc) => (
+                              <div key={doc} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+                                <FileText className="h-4 w-4 text-accent" />
+                                <span className="text-sm text-foreground">{doc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-foreground">Détails du bail</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-muted-foreground">Surface</div>
+                            <div className="font-medium">{t.surface} m²</div>
+                            <div className="text-muted-foreground">Étage</div>
+                            <div className="font-medium">{t.floor}</div>
+                            <div className="text-muted-foreground">Loyer €/m²</div>
+                            <div className="font-medium">{(t.currentRent / t.surface).toFixed(0)} €</div>
+                          </div>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="kpi-card">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Surfaces vacantes par étage</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={floorData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,90%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
+                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="surface" fill="hsl(187,72%,40%)" radius={[4, 4, 0, 0]} name="Surface totale" />
+                  <Bar dataKey="vacant" fill="hsl(38,92%,50%)" radius={[4, 4, 0, 0]} name="Vacant" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="kpi-card flex flex-col items-center justify-center">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Surfaces vacantes totales</p>
+              <p className="text-3xl font-bold text-foreground">{asset.vacantSurface.toLocaleString("fr-FR")} m²</p>
+              <p className="text-lg font-semibold text-warning mt-1">{vacancyRate}% de vacance</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="charges" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Nature", "Montant annuel", "Refacturation", "Commentaire"].map((h) => (
+                      <th key={h} className="table-header text-left py-3 px-3">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {asset.charges.map((c) => (
+                    <tr key={c.id} className="border-b border-border/50">
+                      <td className="py-3 px-3 font-medium text-foreground">{c.nature}</td>
+                      <td className="py-3 px-3 text-foreground">{formatCurrency(c.annualAmount)}</td>
+                      <td className="py-3 px-3">
+                        {c.rebillable ? <span className="badge-success">{c.rebillablePercent}%</span> : <span className="badge-neutral">Non</span>}
+                      </td>
+                      <td className="py-3 px-3 text-xs text-muted-foreground">{c.comment || "–"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border">
+                    <td className="py-3 px-3 font-semibold text-foreground">Total</td>
+                    <td className="py-3 px-3 font-semibold text-foreground">{formatCurrency(totalCharges)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </motion.div>
+
+            <div className="kpi-card">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des charges</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={chargeData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
+                    {chargeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap justify-center gap-3 mt-2">
+                {chargeData.map((c, i) => (
+                  <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    {c.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="info">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card max-w-2xl">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Informations du bien</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              {[
+                { label: "Type de bien", value: asset.type },
+                { label: "Copropriété", value: asset.isCopropriete ? "Oui" : "Non" },
+                { label: "Année de construction", value: asset.constructionYear.toString() },
+                { label: "Derniers travaux", value: asset.lastWorks },
+                { label: "Prix d'acquisition", value: formatCurrency(asset.acquisitionPrice) },
+                { label: "Date d'acquisition", value: new Date(asset.acquisitionDate).toLocaleDateString("fr-FR") },
+                { label: "Surface totale", value: `${asset.totalSurface.toLocaleString("fr-FR")} m²` },
+                { label: "Nombre de locataires", value: asset.tenants.length.toString() },
+              ].map((item) => (
+                <div key={item.label} className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="font-medium text-foreground">{item.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <h4 className="text-sm font-semibold text-foreground mt-6 mb-3">Détail par étage</h4>
+            <div className="space-y-2">
+              {asset.floors.map((f) => (
+                <div key={f.floor} className="flex items-center justify-between py-2 border-b border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Étage {f.floor}</span>
+                    <span className="badge-neutral">{f.type}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">{f.surface} m²</span>
+                    {f.vacant ? <span className="badge-warning">Vacant</span> : <span className="badge-success">Occupé</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default AssetDetail;
