@@ -195,26 +195,18 @@ const InvestmentCommittee = () => {
         <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-accent" /> C. Localisation & Marché
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {[
-              { label: "Adresse", value: deal.address || data.city },
-              { label: "Accessibilité", value: data.location.accessibility },
-              { label: "Dynamique secteur", value: data.location.sectorDynamics },
-              { label: "Taux vacance", value: data.location.vacancySubmarket },
-            ].map((item) => (
-              <div key={item.label}>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
-                <p className="font-medium text-foreground mt-0.5">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <DealMap
-            address={deal.address || data.city}
-            city={data.city}
-            name={deal.opportunity}
-            className="h-[220px]"
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          {[
+            { label: "Adresse", value: deal.address || data.city },
+            { label: "Accessibilité", value: data.location.accessibility },
+            { label: "Dynamique secteur", value: data.location.sectorDynamics },
+            { label: "Taux vacance", value: data.location.vacancySubmarket },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
+              <p className="font-medium text-foreground mt-0.5">{item.value}</p>
+            </div>
+          ))}
         </div>
       </motion.div>
 
