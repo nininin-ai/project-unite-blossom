@@ -366,10 +366,11 @@ const InvestmentCommittee = () => {
         <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-accent" /> Hypothèses de marché — {data.assetType}
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
             { label: "Frais d'acquisition", value: `${(bp.params.acquisitionFeesRate * 100).toFixed(1)}%` },
             { label: "Indexation loyers", value: `${bp.params.indexLabel} (${(bp.params.indexation * 100).toFixed(0)}%/an)` },
+            { label: "Charges / loyers", value: `${(bp.params.chargesRate * 100).toFixed(0)}%` },
             { label: "CAPEX moyen / an", value: `${(bp.params.capexRate * 100).toFixed(1)}%` },
             { label: "Cap rate de sortie", value: `${(bp.params.exitCapRate * 100).toFixed(1)}%` },
             { label: "Plus-value 10 ans", value: `${(bp.params.plusValueRate * 100).toFixed(0)}%` },

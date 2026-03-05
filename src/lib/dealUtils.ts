@@ -55,16 +55,16 @@ export function calculateIRR(cashflows: number[]): number {
 function getAssetTypeParams(assetType?: string) {
   const type = (assetType || "Bureau").toLowerCase();
   if (type.includes("commerce") || type.includes("retail")) {
-    return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.0125, exitCapRate: 0.055, plusValueRate: 0.15, indexLabel: "ILC" };
+    return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.0125, exitCapRate: 0.055, plusValueRate: 0.15, chargesRate: 0.08, indexLabel: "ILC" };
   }
   if (type.includes("logistique")) {
-    return { acquisitionFeesRate: 0.07, indexation: 0.02, capexRate: 0.01, exitCapRate: 0.045, plusValueRate: 0.20, indexLabel: "ILAT" };
+    return { acquisitionFeesRate: 0.07, indexation: 0.02, capexRate: 0.01, exitCapRate: 0.045, plusValueRate: 0.20, chargesRate: 0.07, indexLabel: "ILAT" };
   }
   if (type.includes("data") || type.includes("datacenter")) {
-    return { acquisitionFeesRate: 0.065, indexation: 0.025, capexRate: 0.0075, exitCapRate: 0.055, plusValueRate: 0.125, indexLabel: "Contractuelle" };
+    return { acquisitionFeesRate: 0.065, indexation: 0.025, capexRate: 0.0075, exitCapRate: 0.055, plusValueRate: 0.125, chargesRate: 0.05, indexLabel: "Contractuelle" };
   }
   // Bureaux (default)
-  return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.025, exitCapRate: 0.0525, plusValueRate: 0.15, indexLabel: "ILAT" };
+  return { acquisitionFeesRate: 0.075, indexation: 0.02, capexRate: 0.025, exitCapRate: 0.0525, plusValueRate: 0.15, chargesRate: 0.15, indexLabel: "ILAT" };
 }
 
 export { getAssetTypeParams };
@@ -78,19 +78,21 @@ export function generateBusinessPlan(deal: Deal) {
   // Use deal-specific values or derive from asset type params
   const acquisitionFees = deal.acquisitionFees || Math.round(acquisitionPrice * params.acquisitionFeesRate);
   const annualRent = deal.annualRent || Math.round((deal.amount * deal.yield) / 100);
-  const charges = deal.charges || Math.round(annualRent * 0.08);
+  const charges = deal.charges || Math.round(annualRent * params.chargesRate);
   const annualCapex = deal.capex || Math.round(acquisitionPrice * params.capexRate);
   const surface = deal.surface || 1;
   const occupiedSurface = deal.occupiedSurface || surface;
   const rentPerSqm = deal.rentPerSqm || (annualRent / occupiedSurface);
 
-  // Exit price: use deal value or calculate from cap rate + plus-value
-  const exitPrice = deal.exitPrice || Math.round(
-    Math.max(
-      (annualRent * Math.pow(1 + params.indexation, holdingPeriod)) / params.exitCapRate,
-      acquisitionPrice * (1 + params.plusValueRate)
-    )
-  );
+  // Plus-value dynamique : plus l'actif est sous-évalué (yield élevé vs cap rate sortie), plus la plus-value est forte
+  const yieldSpread = deal.yield / 100 - params.exitCapRate; // écart rendement achat vs marché sortie
+  const dynamicPlusValue = params.plusValueRate + Math.max(0, yieldSpread * 3); // bonus si sous-évalué
+  const adjustedPlusValue = Math.min(dynamicPlusValue, 0.40); // plafonné à 40%
+
+  // Exit price via cap rate de sortie sur loyers indexés, ajusté par plus-value dynamique
+  const exitViaCapRate = (annualRent * Math.pow(1 + params.indexation, holdingPeriod)) / params.exitCapRate;
+  const exitViaPlusValue = acquisitionPrice * (1 + adjustedPlusValue);
+  const exitPrice = deal.exitPrice || Math.round(Math.max(exitViaCapRate, exitViaPlusValue));
 
   const potentialRent = surface * rentPerSqm;
   const totalInvestment = acquisitionPrice + acquisitionFees;

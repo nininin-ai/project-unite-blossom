@@ -160,10 +160,10 @@ const handleExportOnePager = async (deals: Deal[]) => {
     // Hypothèses Marché
     y = checkPage(y, 20);
     y = sectionTitle(`Hypothèses de marché — ${data.assetType}`, y);
-    [["Frais acquisition", `${(bp.params.acquisitionFeesRate * 100).toFixed(1)}%`], ["Indexation", `${bp.params.indexLabel} (${(bp.params.indexation * 100).toFixed(0)}%/an)`], ["CAPEX/an", `${(bp.params.capexRate * 100).toFixed(1)}%`], ["Cap rate sortie", `${(bp.params.exitCapRate * 100).toFixed(1)}%`], ["Plus-value 10a", `${(bp.params.plusValueRate * 100).toFixed(0)}%`]].forEach((item, i) => {
-      const cw5 = CW / 5;
-      label(item[0], M + (i % 5) * cw5, y);
-      value(item[1], M + (i % 5) * cw5, y + 4);
+    [["Frais acquis.", `${(bp.params.acquisitionFeesRate * 100).toFixed(1)}%`], ["Indexation", `${bp.params.indexLabel} (${(bp.params.indexation * 100).toFixed(0)}%)`], ["Charges", `${(bp.params.chargesRate * 100).toFixed(0)}%`], ["CAPEX/an", `${(bp.params.capexRate * 100).toFixed(1)}%`], ["Cap sortie", `${(bp.params.exitCapRate * 100).toFixed(1)}%`], ["PV 10a", `${(bp.params.plusValueRate * 100).toFixed(0)}%`]].forEach((item, i) => {
+      const cw6 = CW / 6;
+      label(item[0], M + (i % 6) * cw6, y);
+      value(item[1], M + (i % 6) * cw6, y + 4);
     });
     y += 12; drawLine(y); y += 6;
 
