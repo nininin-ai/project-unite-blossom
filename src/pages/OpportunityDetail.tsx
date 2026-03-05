@@ -30,10 +30,29 @@ const OpportunityDetail = () => {
   if (!opp) return <div className="p-8 text-center text-muted-foreground">Opportunité introuvable</div>;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1200px] mx-auto">
-      <Link to="/opportunities" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Retour aux opportunités
-      </Link>
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1200px] mx-auto print-area">
+      <div className="flex items-center justify-between no-print">
+        <Link to="/opportunities" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Retour aux opportunités
+        </Link>
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
+        >
+          <Printer className="h-4 w-4" /> Imprimer
+        </button>
+      </div>
+
+      {/* Print header with logo */}
+      <div className="hidden print-only">
+        <div className="flex items-center justify-between border-b pb-4 mb-4" style={{ borderColor: '#e5e5e5' }}>
+          <img src={logoEquimmox} alt="EquimmoX" style={{ width: '105px' }} />
+          <div className="text-right">
+            <p style={{ fontSize: '10px', color: '#999' }}>Fiche Opportunité — Confidentiel</p>
+            <p style={{ fontSize: '10px', color: '#999' }}>{new Date().toLocaleDateString("fr-FR")}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col lg:flex-row gap-6">
