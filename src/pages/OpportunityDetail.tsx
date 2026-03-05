@@ -6,8 +6,8 @@ import {
   Building2,
   ChevronDown,
   MapPin,
+  Plus,
   Printer,
-  Send,
   ThumbsDown,
   TrendingUp,
   Upload,
@@ -36,13 +36,43 @@ const OpportunityDetail = () => {
         <Link to="/opportunities" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Retour aux opportunités
         </Link>
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
-        >
-          <Printer className="h-4 w-4" /> Imprimer
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/deals")}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+          >
+            <TrendingUp className="h-4 w-4" /> Intégrer au Deal Flow
+          </button>
+          <button
+            onClick={() => setShowReject(!showReject)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+          >
+            <ThumbsDown className="h-4 w-4" /> Rejeter
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
+          >
+            <Printer className="h-4 w-4" /> Imprimer
+          </button>
+        </div>
       </div>
+
+      {showReject && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-4 rounded-lg bg-destructive/5 border border-destructive/20 no-print">
+          <p className="text-sm font-medium text-foreground mb-2">Motif du rejet :</p>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            rows={3}
+            placeholder="Ex : Rendement insuffisant, risque locatif trop élevé…"
+          />
+          <button className="mt-2 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">
+            Confirmer le rejet
+          </button>
+        </motion.div>
+      )}
 
       {/* Print header with logo */}
       <div className="hidden print-only">
@@ -209,45 +239,36 @@ const OpportunityDetail = () => {
         )}
       </motion.div>
 
-      {/* Actions */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="kpi-card no-print">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Actions</h3>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => navigate("/deals")}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
-          >
-            <TrendingUp className="h-4 w-4" /> Intégrer au Deal Flow
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
-            <Upload className="h-4 w-4" /> Associer documents
-          </button>
-          <button
-            onClick={() => setShowReject(!showReject)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
-          >
-            <ThumbsDown className="h-4 w-4" /> Rejeter l'opportunité
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors">
-            <Send className="h-4 w-4" /> Envoyer l'analyse
+      {/* Documents associés */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="kpi-card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-foreground">Documents associés</h3>
+          <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline no-print">
+            <Plus className="h-3.5 w-3.5" /> Ajouter un document
           </button>
         </div>
-
-        {showReject && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-sm font-medium text-foreground mb-2">Motif du rejet :</p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-              rows={3}
-              placeholder="Ex : Rendement insuffisant, risque locatif trop élevé…"
-            />
-            <button className="mt-2 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">
-              Confirmer le rejet
-            </button>
-          </motion.div>
-        )}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="table-header text-left py-2 px-3">Nom document</th>
+              <th className="table-header text-left py-2 px-3">Type</th>
+              <th className="table-header text-left py-2 px-3">Date upload</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { name: `Teaser – ${opp.name}`, type: "Teaser", date: new Date(opp.receptionDate).toLocaleDateString("fr-FR") },
+              { name: "Information Memorandum", type: "IM", date: new Date(new Date(opp.receptionDate).getTime() + 5 * 86400000).toLocaleDateString("fr-FR") },
+              { name: "Business Plan prévisionnel", type: "Business Plan", date: new Date(new Date(opp.receptionDate).getTime() + 16 * 86400000).toLocaleDateString("fr-FR") },
+            ].map((doc, i) => (
+              <tr key={i} className="border-b border-border/30">
+                <td className="py-2.5 px-3 font-medium text-foreground">{doc.name}</td>
+                <td className="py-2.5 px-3"><span className="badge-neutral">{doc.type}</span></td>
+                <td className="py-2.5 px-3 text-muted-foreground">{doc.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </motion.div>
     </div>
   );
