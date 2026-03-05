@@ -165,12 +165,8 @@ const InvestmentCommittee = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           {[
             { label: "Code", value: deal.code },
-            { label: "Nom actif", value: deal.opportunity },
-            { label: "Adresse", value: deal.address || data.city },
-            { label: "Classe d'actif", value: data.assetType },
             { label: "Broker", value: data.broker },
             { label: "Date réception", value: new Date(data.receptionDate).toLocaleDateString("fr-FR") },
-            { label: "Statut pipeline", value: deal.dealStatus },
             { label: "Priorité auto", value: autoPriority },
           ].map((item) => (
             <div key={item.label}>
