@@ -321,8 +321,8 @@ export const mockAssets: Asset[] = [
     yield: 7.7,
     riskScore: 35,
     tenants: [
-      { id: "t13", name: "Geodis Logistics", startDate: "2020-04-01", endDate: "2032-03-31", triennialDate: "2026-04-01", leaseType: "3/6/9", deposit: 180000, currentRent: 720000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 8000, floor: 0 },
-      { id: "t14", name: "Amazon France Log", startDate: "2021-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "Ferme 9 ans", deposit: 95000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Triple net", unpaid: false, surface: 4000, floor: 0 },
+      { id: "t13", name: "Geodis Logistics", startDate: "2020-04-01", endDate: "2032-03-31", triennialDate: "2026-04-01", leaseType: "3/6/9", deposit: 180000, currentRent: 720000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 8000, floor: 0, siren: "383474825" },
+      { id: "t14", name: "Amazon France Log", startDate: "2021-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "Ferme 9 ans", deposit: 95000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Triple net", unpaid: false, surface: 4000, floor: 0, siren: "487482018" },
     ],
     charges: [
       { id: "c18", nature: "Taxe foncière", annualAmount: 98000, rebillable: false, comment: "" },
