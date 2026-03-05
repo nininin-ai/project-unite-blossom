@@ -215,25 +215,10 @@ const AssetDetail = () => {
             </table>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="kpi-card">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Surfaces vacantes par étage</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={floorData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,90%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="surface" fill="hsl(187,72%,40%)" radius={[4, 4, 0, 0]} name="Surface totale" />
-                  <Bar dataKey="vacant" fill="hsl(38,92%,50%)" radius={[4, 4, 0, 0]} name="Vacant" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="kpi-card flex flex-col items-center justify-center">
+          <div className="kpi-card flex flex-col items-center justify-center">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Surfaces vacantes totales</p>
               <p className="text-3xl font-bold text-foreground">{asset.vacantSurface.toLocaleString("fr-FR")} m²</p>
               <p className="text-lg font-semibold text-warning mt-1">{vacancyRate}% de vacance</p>
-            </div>
           </div>
         </TabsContent>
 
