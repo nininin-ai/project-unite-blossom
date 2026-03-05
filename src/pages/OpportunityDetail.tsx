@@ -58,9 +58,11 @@ const OpportunityDetail = () => {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-80 space-y-3 shrink-0">
-          <div className="h-44 rounded-xl bg-gradient-to-br from-accent/20 to-primary/10 border border-border/60 flex items-center justify-center">
-            <Building2 className="h-16 w-16 text-accent/40" />
-          </div>
+          <img
+            src={getAssetImage(opp.assetType)}
+            alt={opp.name}
+            className="h-44 w-full rounded-xl object-cover border border-border/60"
+          />
           <DealMap address={opp.address} city={opp.city} name={opp.name} className="h-32" />
         </div>
 
