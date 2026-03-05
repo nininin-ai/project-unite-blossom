@@ -54,7 +54,7 @@ const DealFlow = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-foreground">Deal Flow</h1><p className="text-sm text-muted-foreground mt-1">Pipeline d'investissement • {enrichedDeals.length} opportunités</p></div>
         <div className="flex items-center gap-2">
-          {selectedDeals.size > 0 && <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"><Download className="h-4 w-4" />Exporter {selectedDeals.size} deal{selectedDeals.size > 1 ? "s" : ""} (PDF)</button>}
+          {selectedDeals.size > 0 && <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"><Download className="h-4 w-4" />One Pager {selectedDeals.size > 1 ? `(${selectedDeals.size})` : ""}</button>}
           <button onClick={() => setView("table")} className={`p-2 rounded-lg transition-colors ${view === "table" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"}`}><List className="h-4 w-4" /></button>
           <button onClick={() => setView("kanban")} className={`p-2 rounded-lg transition-colors ${view === "kanban" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"}`}><Kanban className="h-4 w-4" /></button>
         </div>
