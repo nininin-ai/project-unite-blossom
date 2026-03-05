@@ -285,7 +285,7 @@ export const mockAssets: Asset[] = [
     yield: 7.9,
     riskScore: 82,
     tenants: [
-      { id: "t10", name: "SAP France", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 200000, currentRent: 1200000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 4000, floor: 1 },
+      { id: "t10", name: "SAP France", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 200000, currentRent: 1200000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 4000, floor: 1, siren: "379821994" },
       { id: "t11", name: "DataViz SAS", startDate: "2023-03-01", endDate: "2026-02-28", triennialDate: "2026-03-01", leaseType: "Dérogatoire", deposit: 45000, currentRent: 280000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 6 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2 },
       { id: "t12", name: "BioTech Lab", startDate: "2022-09-01", endDate: "2025-08-31", triennialDate: "2025-09-01", leaseType: "3/6/9", deposit: 30000, currentRent: 270000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Travaux bailleur 80k€", chargesManagement: "Réel", unpaid: false, surface: 500, floor: 3 },
     ],
