@@ -158,3 +158,45 @@
     color: hsl(var(--sidebar-primary));
   }
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-area {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  .kpi-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e5e5e5 !important;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

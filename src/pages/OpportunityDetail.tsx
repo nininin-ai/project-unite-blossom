@@ -207,7 +207,7 @@ const OpportunityDetail = () => {
       </motion.div>
 
       {/* Actions */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="kpi-card">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="kpi-card no-print">
         <h3 className="text-sm font-semibold text-foreground mb-4">Actions</h3>
         <div className="flex flex-wrap gap-3">
           <button
