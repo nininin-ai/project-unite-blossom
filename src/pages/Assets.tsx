@@ -1,23 +1,31 @@
-import { mockAssets } from "@/data/mockData";
+import { useState } from "react";
+import { mockAssets, Asset } from "@/data/mockData";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Building2, MapPin, TrendingUp } from "lucide-react";
+import ExcelImport from "@/components/ExcelImport";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 
 const Assets = () => {
+  const [assets, setAssets] = useState<Asset[]>(mockAssets);
+
+  const handleImport = (newAssets: Asset[]) => {
+    setAssets((prev) => [...prev, ...newAssets]);
+  };
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Parc Immobilier</h1>
-          <p className="text-sm text-muted-foreground mt-1">{mockAssets.length} actifs sous gestion</p>
+          <p className="text-sm text-muted-foreground mt-1">{assets.length} actifs sous gestion</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {mockAssets.map((asset, i) => {
+        {assets.map((asset, i) => {
           const vacancyRate = (asset.vacantSurface / asset.totalSurface * 100).toFixed(1);
           const hasUnpaid = asset.tenants.some(t => t.unpaid);
           return (
@@ -61,7 +69,7 @@ const Assets = () => {
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Vacance</p>
                     <p className={`text-sm font-semibold ${+vacancyRate > 15 ? "text-destructive" : +vacancyRate > 8 ? "text-warning" : "text-success"}`}>
-                      {vacancyRate}%
+                      {vacancyRate}% ({asset.vacantSurface.toLocaleString("fr-FR")} m²)
                     </p>
                   </div>
                 </div>
@@ -80,6 +88,9 @@ const Assets = () => {
           );
         })}
       </div>
+
+      {/* Import Excel */}
+      <ExcelImport onImport={handleImport} />
     </div>
   );
 };

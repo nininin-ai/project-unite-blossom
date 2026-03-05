@@ -1,40 +1,50 @@
 import { mockAssets, mockDeals } from "@/data/mockData";
+import { fundTargets } from "@/data/marketData";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, TrendingUp } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, ShieldAlert, TrendingUp } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 
 const Dashboard = () => {
   const totalRent = mockAssets.reduce((s, a) => s + a.annualRent, 0);
+  const totalValue = mockAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
   const avgVacancy = mockAssets.reduce((s, a) => s + (a.vacantSurface / a.totalSurface) * 100, 0) / mockAssets.length;
-  const eligible = mockDeals.filter(d => d.status !== "Non éligible");
-  const totalPipeline = eligible.reduce((s, d) => s + d.amount, 0);
-  const avgTRI = eligible.reduce((s, d) => s + d.triEstimated * d.amount, 0) / totalPipeline;
+
+  const triPondere = mockAssets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalValue;
+
+  const risqueConsolide = mockAssets.reduce((s, a) => s + a.riskScore * a.acquisitionPrice, 0) / totalValue;
+  const risqueLabel = risqueConsolide < 40 ? "Faible" : risqueConsolide < 65 ? "Modéré" : "Élevé";
+  const risqueBadgeClass = risqueConsolide < 40 ? "badge-success" : risqueConsolide < 65 ? "badge-warning" : "badge-danger";
+
+  const rendementPondere = mockAssets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalValue;
+  const totalSurface = mockAssets.reduce((s, a) => s + a.totalSurface, 0);
+  const totalVacantSurface = mockAssets.reduce((s, a) => s + a.vacantSurface, 0);
+  const vacancePonderee = (totalVacantSurface / totalSurface) * 100;
+
+  const ecartRendement = rendementPondere - fundTargets.yieldTarget;
+  const ecartVacance = vacancePonderee - fundTargets.vacancyTarget;
 
   const upcomingLeases = mockAssets
     .flatMap(a => a.tenants.map(t => ({ ...t, assetName: a.name })))
     .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
     .slice(0, 5);
 
-  const risks = mockAssets.filter(a => a.riskScore >= 70);
-
-  const yieldData = mockAssets.map(a => ({ name: a.name.split(" ")[0], rendement: a.yield, vacance: +(a.vacantSurface / a.totalSurface * 100).toFixed(1) }));
+  const yieldData = mockAssets.map(a => ({ name: a.name.length > 16 ? a.name.slice(0, 16) + "…" : a.name, rendement: a.yield }));
 
   const typeData = [
     { name: "Bureau", value: mockAssets.filter(a => a.type === "Bureau").length },
     { name: "Commerce", value: mockAssets.filter(a => a.type === "Commerce").length },
     { name: "Résidentiel", value: mockAssets.filter(a => a.type === "Résidentiel").length },
-    { name: "Logistique", value: mockAssets.filter(a => a.type === "Logistique").length },
-  ].filter(t => t.value > 0);
-  const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)", "hsl(38,92%,50%)"];
+  ];
+  const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)"];
 
   const kpis = [
+    { label: "Valeur sous gestion", value: formatCurrency(totalValue), icon: Building2, trend: `${mockAssets.length} actifs`, positive: true },
     { label: "Loyers annualisés", value: formatCurrency(totalRent), icon: TrendingUp, trend: "+4.2%", positive: true },
-    { label: "Taux de vacance moyen", value: `${avgVacancy.toFixed(1)}%`, icon: Building2, trend: "-1.3%", positive: true },
-    { label: "Pipeline total", value: formatCurrency(totalPipeline), icon: ArrowUpRight, trend: "+12%", positive: true },
-    { label: "TRI moyen pondéré", value: `${avgTRI.toFixed(1)}%`, icon: TrendingUp, trend: avgTRI > 7 ? "Au-dessus cible" : "Sous cible", positive: avgTRI > 7 },
+    { label: "TRI moyen pondéré", value: `${triPondere.toFixed(1)}%`, icon: TrendingUp, trend: triPondere > fundTargets.yieldTarget ? "Au-dessus cible" : "Sous cible", positive: triPondere > fundTargets.yieldTarget },
+    { label: "Risque consolidé", value: `${risqueConsolide.toFixed(0)}/100`, icon: ShieldAlert, trend: risqueLabel, positive: risqueConsolide < 65, badge: risqueBadgeClass },
   ];
 
   return (
@@ -44,6 +54,7 @@ const Dashboard = () => {
         <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble du parc et du pipeline d'investissement</p>
       </div>
 
+      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <motion.div
@@ -59,29 +70,92 @@ const Dashboard = () => {
             </div>
             <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
             <div className="flex items-center gap-1 mt-2">
-              {kpi.positive ? (
-                <ArrowUpRight className="h-3 w-3 text-success" />
+              {kpi.badge ? (
+                <span className={kpi.badge}>{kpi.trend}</span>
               ) : (
-                <ArrowDownRight className="h-3 w-3 text-destructive" />
+                <>
+                  {kpi.positive ? (
+                    <ArrowUpRight className="h-3 w-3 text-success" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-destructive" />
+                  )}
+                  <span className={`text-xs font-medium ${kpi.positive ? "text-success" : "text-destructive"}`}>{kpi.trend}</span>
+                </>
               )}
-              <span className={`text-xs font-medium ${kpi.positive ? "text-success" : "text-destructive"}`}>{kpi.trend}</span>
             </div>
           </motion.div>
         ))}
       </div>
 
+      {/* Parc Actif vs Cible Fonds */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="kpi-card">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Parc Actif vs Cible Fonds</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Parc actuel</p>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Rendement moyen pondéré</p>
+                <p className="text-lg font-bold text-foreground">{rendementPondere.toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Vacance moyenne pondérée</p>
+                <p className="text-lg font-bold text-foreground">{vacancePonderee.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3 border-x border-border/50 px-4">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Cible fonds</p>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Rendement cible</p>
+                <p className="text-lg font-bold text-foreground">{fundTargets.yieldTarget.toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Vacance cible</p>
+                <p className="text-lg font-bold text-foreground">{fundTargets.vacancyTarget.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Écart</p>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Écart rendement</p>
+                <p className={`text-lg font-bold ${ecartRendement >= 0 ? "text-success" : "text-destructive"}`}>
+                  {ecartRendement >= 0 ? "+" : ""}{ecartRendement.toFixed(2)} pts
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Écart vacance</p>
+                <p className={`text-lg font-bold ${ecartVacance <= 0 ? "text-success" : "text-destructive"}`}>
+                  {ecartVacance >= 0 ? "+" : ""}{ecartVacance.toFixed(1)} pts
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="kpi-card lg:col-span-2">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Rendement & Vacance par actif</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={yieldData}>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Performance par actif vs cible fonds</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={yieldData}>
+              <defs>
+                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(187,72%,40%)" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="hsl(187,72%,40%)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,15%,90%)" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(220,10%,46%)" }} domain={[0, 'auto']} />
               <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(220,15%,90%)", fontSize: 12 }} />
-              <Bar dataKey="rendement" fill="hsl(187,72%,40%)" radius={[4, 4, 0, 0]} name="Rendement (%)" />
-              <Bar dataKey="vacance" fill="hsl(38,92%,50%)" radius={[4, 4, 0, 0]} name="Vacance (%)" />
-            </BarChart>
+              <ReferenceLine y={fundTargets.yieldTarget} stroke="hsl(0,72%,51%)" strokeDasharray="8 5" strokeWidth={2} label={{ value: `Cible ${fundTargets.yieldTarget}%`, position: "right", fontSize: 11, fill: "hsl(0,72%,51%)" }} />
+              <Area type="monotone" dataKey="rendement" stroke="hsl(187,72%,40%)" strokeWidth={2.5} fill="url(#areaFill)" name="Rendement actif (%)" dot={{ r: 3, fill: "hsl(187,72%,40%)" }} />
+            </AreaChart>
           </ResponsiveContainer>
         </motion.div>
 
@@ -106,6 +180,7 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
+      {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="kpi-card">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
