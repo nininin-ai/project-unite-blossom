@@ -134,7 +134,25 @@ const InvestmentCommittee = () => {
               <span className={priorityBadgeClass}>Priorité {autoPriority}</span>
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{deal.opportunity}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{data.assetType} • {data.city}</p>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" />{deal.address || data.city}, {data.city}
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-3 mt-5">
+              {[
+                { label: "Classe d'actif", value: data.assetType },
+                { label: "Surface", value: `${data.surface.toLocaleString("fr-FR")} m²` },
+                { label: "Prix demandé", value: fmt(deal.amount) },
+                { label: "Loyer en place", value: fmt(annualRent) },
+                { label: "Taux de rendement", value: `${deal.yield}%` },
+                { label: "Statut pipeline", value: deal.dealStatus },
+              ].map((item) => (
+                <div key={item.label} className="py-1">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -147,12 +165,8 @@ const InvestmentCommittee = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           {[
             { label: "Code", value: deal.code },
-            { label: "Nom actif", value: deal.opportunity },
-            { label: "Adresse", value: deal.address || data.city },
-            { label: "Classe d'actif", value: data.assetType },
             { label: "Broker", value: data.broker },
             { label: "Date réception", value: new Date(data.receptionDate).toLocaleDateString("fr-FR") },
-            { label: "Statut pipeline", value: deal.dealStatus },
             { label: "Priorité auto", value: autoPriority },
           ].map((item) => (
             <div key={item.label}>
