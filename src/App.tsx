@@ -7,6 +7,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Assets from "@/pages/Assets";
 import AssetDetail from "@/pages/AssetDetail";
+import CommercialSheet from "@/pages/CommercialSheet";
 import Arbitrage from "@/pages/Arbitrage";
 import DealFlow from "@/pages/DealFlow";
 import InvestmentCommittee from "@/pages/InvestmentCommittee";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/assets/:id" element={<AssetDetail />} />
+            <Route path="/assets/:id/fiche-commerciale" element={<CommercialSheet />} />
             <Route path="/arbitrage" element={<Arbitrage />} />
             <Route path="/deals" element={<DealFlow />} />
             <Route path="/deals/:id" element={<InvestmentCommittee />} />
