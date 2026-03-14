@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileText, MapPin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Building2, FileText, MapPin, ExternalLink, FileSpreadsheet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
