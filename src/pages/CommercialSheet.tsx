@@ -102,8 +102,29 @@ const CommercialSheet = () => {
   });
 
   const [isPrintMode, setIsPrintMode] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!asset) return <div className="p-8 text-center text-muted-foreground">Actif introuvable</div>;
+
+  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = 3 - photos.length;
+    const toAdd = Array.from(files).slice(0, remaining);
+    toAdd.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setPhotos((prev) => [...prev.slice(0, 2), ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const removePhoto = (index: number) => setPhotos((prev) => prev.filter((_, i) => i !== index));
 
   const update = (key: keyof SheetData, value: string) => setData((prev) => ({ ...prev, [key]: value }));
 
