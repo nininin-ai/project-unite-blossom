@@ -46,9 +46,14 @@ const AssetDetail = () => {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <Link to="/assets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Retour au parc
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link to="/assets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Retour au parc
+        </Link>
+        <Link to={`/assets/${id}/fiche-commerciale`} className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 transition-colors">
+          <FileSpreadsheet className="h-4 w-4" /> Fiche de commercialisation
+        </Link>
+      </div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-start gap-4">
