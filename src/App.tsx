@@ -7,6 +7,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Assets from "@/pages/Assets";
 import AssetDetail from "@/pages/AssetDetail";
+import CommercialSheet from "@/pages/CommercialSheet";
 import Arbitrage from "@/pages/Arbitrage";
 import DealFlow from "@/pages/DealFlow";
 import InvestmentCommittee from "@/pages/InvestmentCommittee";
