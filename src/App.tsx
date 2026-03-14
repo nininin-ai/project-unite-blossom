@@ -28,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/assets/:id" element={<AssetDetail />} />
+            <Route path="/assets/:id/fiche-commerciale" element={<CommercialSheet />} />
             <Route path="/arbitrage" element={<Arbitrage />} />
             <Route path="/deals" element={<DealFlow />} />
             <Route path="/deals/:id" element={<InvestmentCommittee />} />

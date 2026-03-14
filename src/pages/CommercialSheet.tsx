@@ -53,25 +53,23 @@ const CommercialSheet = () => {
   const { id } = useParams();
   const asset = mockAssets.find((a) => a.id === id);
 
-  if (!asset) return <div className="p-8 text-center text-muted-foreground">Actif introuvable</div>;
-
-  const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
-  const floorStr = asset.floors.map((f) => `Ét. ${f.floor}: ${f.surface} m² (${f.type})`).join(" | ");
-  const vacantFloors = asset.floors.filter((f) => f.vacant);
+  const totalCharges = asset ? asset.charges.reduce((s, c) => s + c.annualAmount, 0) : 0;
+  const floorStr = asset ? asset.floors.map((f) => `Ét. ${f.floor}: ${f.surface} m² (${f.type})`).join(" | ") : "";
+  const vacantFloors = asset ? asset.floors.filter((f) => f.vacant) : [];
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 
   const [data, setData] = useState<SheetData>({
-    designation: asset.name,
-    address: asset.address,
-    city: asset.city,
-    assetType: asset.type,
-    totalSurface: `${asset.totalSurface.toLocaleString("fr-FR")} m²`,
+    designation: asset?.name || "",
+    address: asset?.address || "",
+    city: asset?.city || "",
+    assetType: asset?.type || "",
+    totalSurface: asset ? `${asset.totalSurface.toLocaleString("fr-FR")} m²` : "",
     floorDetail: floorStr,
-    destination: asset.type === "Commerce" ? "Commerce / Activité commerciale" : asset.type === "Bureau" ? "Bureaux" : "Activité / Logistique",
+    destination: asset?.type === "Commerce" ? "Commerce / Activité commerciale" : asset?.type === "Bureau" ? "Bureaux" : "Activité / Logistique",
     usagesPossibles: "",
-    etatGeneral: asset.lastWorks ? `Derniers travaux : ${asset.lastWorks}` : "Bon état",
+    etatGeneral: asset?.lastWorks ? `Derniers travaux : ${asset.lastWorks}` : "Bon état",
     vitrine: "",
     acces: "",
     hauteur: "",
@@ -79,9 +77,9 @@ const CommercialSheet = () => {
     exterieur: "",
     equipements: "",
     disponibilite: vacantFloors.length > 0 ? "Immédiate" : "À convenir",
-    loyer: vacantFloors.length > 0
+    loyer: asset && vacantFloors.length > 0
       ? `${formatCurrency(Math.round(asset.annualRent / asset.totalSurface * (vacantFloors.reduce((s, f) => s + f.surface, 0))))} /an`
-      : `${formatCurrency(asset.annualRent)} /an`,
+      : asset ? `${formatCurrency(asset.annualRent)} /an` : "",
     charges: `${formatCurrency(totalCharges)} /an`,
     taxeFonciere: "À définir",
     honoraires: "Selon barème",
@@ -104,6 +102,8 @@ const CommercialSheet = () => {
   });
 
   const [isPrintMode, setIsPrintMode] = useState(false);
+
+  if (!asset) return <div className="p-8 text-center text-muted-foreground">Actif introuvable</div>;
 
   const update = (key: keyof SheetData, value: string) => setData((prev) => ({ ...prev, [key]: value }));
 
