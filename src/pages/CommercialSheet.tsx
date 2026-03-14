@@ -210,8 +210,39 @@ const CommercialSheet = () => {
             </div>
           </div>
 
+          {/* Photos band */}
+          {(photos.length > 0 || !isPrintMode) && (
+            <div className="px-6 pt-4">
+              <div className="flex gap-3 items-stretch">
+                {photos.map((src, i) => (
+                  <div key={i} className="relative flex-1 h-[140px] rounded-lg overflow-hidden border border-border/50 group">
+                    <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    {!isPrintMode && (
+                      <button
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!isPrintMode && photos.length < 3 && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 h-[140px] rounded-lg border-2 border-dashed border-border hover:border-accent/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    <ImagePlus className="h-6 w-6" />
+                    <span className="text-xs font-medium">Ajouter une photo</span>
+                  </button>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddPhoto} />
+              </div>
+            </div>
+          )}
+
           {/* Body */}
-          <div className="p-6 grid grid-cols-3 gap-5 text-sm overflow-y-auto" style={{ maxHeight: "calc(100% - 80px)" }}>
+          <div className="p-6 grid grid-cols-3 gap-5 text-sm overflow-y-auto" style={{ maxHeight: photos.length > 0 ? "calc(100% - 240px)" : "calc(100% - 80px)" }}>
             {/* Column 1 — Désignation & Surfaces */}
             <div className="space-y-4">
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
