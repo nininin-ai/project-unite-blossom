@@ -4,7 +4,7 @@ import { ArrowLeft, Printer, Building2, MapPin, Ruler, Calendar, Euro, Zap, Car,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import logoEquimmox from "@/assets/logo-equimmox.png";
 
 interface SheetData {
