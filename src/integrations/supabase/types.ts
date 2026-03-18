@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          acquisition_date: string
+          acquisition_price: number
+          address: string
+          annual_rent: number
+          charges: Json
+          city: string
+          construction_year: number
+          created_at: string
+          floors: Json
+          id: string
+          is_copropriete: boolean
+          last_works: string
+          name: string
+          risk_score: number
+          tenants: Json
+          total_surface: number
+          type: string
+          updated_at: string
+          user_id: string
+          vacant_surface: number
+          yield: number
+        }
+        Insert: {
+          acquisition_date?: string
+          acquisition_price?: number
+          address?: string
+          annual_rent?: number
+          charges?: Json
+          city?: string
+          construction_year?: number
+          created_at?: string
+          floors?: Json
+          id?: string
+          is_copropriete?: boolean
+          last_works?: string
+          name: string
+          risk_score?: number
+          tenants?: Json
+          total_surface?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+          vacant_surface?: number
+          yield?: number
+        }
+        Update: {
+          acquisition_date?: string
+          acquisition_price?: number
+          address?: string
+          annual_rent?: number
+          charges?: Json
+          city?: string
+          construction_year?: number
+          created_at?: string
+          floors?: Json
+          id?: string
+          is_copropriete?: boolean
+          last_works?: string
+          name?: string
+          risk_score?: number
+          tenants?: Json
+          total_surface?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+          vacant_surface?: number
+          yield?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
