@@ -39,9 +39,9 @@ const dbRowToAsset = (row: {
   annualRent: row.annual_rent,
   yield: row.yield,
   riskScore: row.risk_score,
-  tenants: (row.tenants as Asset["tenants"]) ?? [],
-  charges: (row.charges as Asset["charges"]) ?? [],
-  floors: (row.floors as Asset["floors"]) ?? [],
+  tenants: (row.tenants as unknown as Asset["tenants"]) ?? [],
+  charges: (row.charges as unknown as Asset["charges"]) ?? [],
+  floors: (row.floors as unknown as Asset["floors"]) ?? [],
 });
 
 const assetToDbRow = (asset: Asset, userId: string) => ({
