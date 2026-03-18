@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Building2, ChevronDown, FolderKanban, LayoutDashboard, Scale, Star } from "lucide-react";
+import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import logoEquimmox from "@/assets/logo-equimmox.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navGroups = [
   {
@@ -23,6 +24,7 @@ const navGroups = [
 
 const Layout = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   // Auto-open the group containing the active route
@@ -89,8 +91,19 @@ const Layout = () => {
 
         <div className="px-2 py-3 border-t border-sidebar-border">
           <div className="flex flex-col items-center gap-1">
-            <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center text-[10px] font-semibold text-sidebar-primary">AD</div>
-            <p className="text-[9px] font-medium text-sidebar-accent-foreground text-center">A. Durand</p>
+            <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center text-[10px] font-semibold text-sidebar-primary">
+              {user?.email?.slice(0, 2).toUpperCase() ?? "?"}
+            </div>
+            <p className="text-[9px] font-medium text-sidebar-accent-foreground text-center truncate max-w-full">
+              {user?.email?.split("@")[0] ?? ""}
+            </p>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1 text-[9px] text-muted-foreground hover:text-destructive transition-colors mt-1"
+            >
+              <LogOut className="h-3 w-3" />
+              Déconnexion
+            </button>
           </div>
         </div>
       </aside>
