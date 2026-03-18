@@ -9,12 +9,9 @@ import {
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAsset, useUpdateAsset } from "@/hooks/useAssets";
+import { useAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
+import EditAssetDialog from "@/components/EditAssetDialog";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
