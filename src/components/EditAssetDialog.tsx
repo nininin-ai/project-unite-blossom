@@ -119,6 +119,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
       setFloors(asset.floors.map((f) => ({ ...f })));
       setTenants(asset.tenants.map((t) => ({ ...t })));
       setCharges(asset.charges.map((c) => ({ ...c })));
+      setCredits((asset.credits || []).map((cr) => ({ ...cr })));
     }
   }, [open, asset]);
 
