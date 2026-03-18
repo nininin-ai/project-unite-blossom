@@ -43,6 +43,7 @@ const AddAssetDialog = () => {
       lastWorks: "",
       tenants: [],
       charges: [],
+      credits: [],
       floors: [],
     };
 
