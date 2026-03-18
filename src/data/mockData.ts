@@ -28,6 +28,23 @@ export interface Charge {
   document?: string;
 }
 
+export interface Credit {
+  id: string;
+  bank: string;
+  purpose: string; // acquisition, travaux, refinancement
+  totalCapital: number;
+  remainingCapital: number;
+  monthlyPayment: number;
+  interestRate: number;
+  rateType: string; // fixe, variable, capé
+  duration: number; // months
+  startDate: string;
+  endDate: string;
+  earlyRepaymentPenalty: string;
+  amortizationDocPath?: string;
+  amortizationDocName?: string;
+}
+
 export interface Asset {
   id: string;
   name: string;
@@ -46,6 +63,7 @@ export interface Asset {
   riskScore: number;
   tenants: Tenant[];
   charges: Charge[];
+  credits: Credit[];
   floors: { floor: number; type: string; surface: number; vacant: boolean }[];
 }
 
