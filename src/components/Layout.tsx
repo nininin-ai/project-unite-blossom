@@ -24,6 +24,7 @@ const navGroups = [
 
 const Layout = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   // Auto-open the group containing the active route
