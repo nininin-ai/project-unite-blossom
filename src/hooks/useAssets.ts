@@ -41,6 +41,7 @@ const dbRowToAsset = (row: {
   riskScore: row.risk_score,
   tenants: (row.tenants as unknown as Asset["tenants"]) ?? [],
   charges: (row.charges as unknown as Asset["charges"]) ?? [],
+  credits: ((row as any).credits as unknown as Asset["credits"]) ?? [],
   floors: (row.floors as unknown as Asset["floors"]) ?? [],
 });
 
