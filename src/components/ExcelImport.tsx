@@ -47,6 +47,7 @@ const parseExcelToAssets = (data: Record<string, unknown>[]): Asset[] => {
         riskScore,
         tenants: [],
         charges: [],
+        credits: [],
         floors: [],
       } satisfies Asset;
     });
