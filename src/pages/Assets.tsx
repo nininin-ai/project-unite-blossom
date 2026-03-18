@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Building2, Grid3X3, List, MapPin, TrendingUp, Trash2, Loader2 } from "lucide-react";
 import ExcelImport from "@/components/ExcelImport";
+import AddAssetDialog from "@/components/AddAssetDialog";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -39,30 +40,33 @@ const Assets = () => {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Parc Immobilier</h1>
           <p className="text-sm text-muted-foreground mt-1">{assets.length} actifs sous gestion</p>
         </div>
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-          <Button
-            variant={view === "cards" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("cards")}
-            className="h-8 px-3"
-          >
-            <Grid3X3 className="h-4 w-4 mr-1.5" />
-            Cartes
-          </Button>
-          <Button
-            variant={view === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("table")}
-            className="h-8 px-3"
-          >
-            <List className="h-4 w-4 mr-1.5" />
-            Tableau
-          </Button>
+        <div className="flex items-center gap-2">
+          <AddAssetDialog />
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={view === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("cards")}
+              className="h-8 px-3"
+            >
+              <Grid3X3 className="h-4 w-4 mr-1.5" />
+              Cartes
+            </Button>
+            <Button
+              variant={view === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("table")}
+              className="h-8 px-3"
+            >
+              <List className="h-4 w-4 mr-1.5" />
+              Tableau
+            </Button>
+          </div>
         </div>
       </div>
 
