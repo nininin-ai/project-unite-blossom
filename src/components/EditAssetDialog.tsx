@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
-import { Asset, Tenant, Charge } from "@/data/mockData";
+import { Asset, Tenant, Charge, Credit } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { useUpdateAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
 
