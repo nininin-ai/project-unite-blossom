@@ -280,6 +280,7 @@ export const mockAssets: Asset[] = [
       { id: "c11", nature: "Charges copropriété", annualAmount: 52000, rebillable: true, rebillablePercent: 70, comment: "" },
       { id: "c12", nature: "Assurance PNO", annualAmount: 8500, rebillable: false, comment: "" },
     ],
+    credits: [],
     floors: [
       { floor: 0, type: "Commerce", surface: 200, vacant: true },
       { floor: 1, type: "Résidentiel", surface: 300, vacant: false },
