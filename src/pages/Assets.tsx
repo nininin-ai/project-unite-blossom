@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Building2, Grid3X3, List, MapPin, TrendingUp, Trash2, Loader2 } from "lucide-react";
 import ExcelImport from "@/components/ExcelImport";
+import AddAssetDialog from "@/components/AddAssetDialog";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
