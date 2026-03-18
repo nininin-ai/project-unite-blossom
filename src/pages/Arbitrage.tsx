@@ -143,7 +143,7 @@ const healthColor = (score: number) =>
   score >= 75 ? "text-success" : score >= 50 ? "text-warning" : "text-destructive";
 
 const Arbitrage = () => {
-  const { assets, isLoading } = useAssets();
+  const { data: assets, isLoading } = useAssets();
 
   if (isLoading) {
     return (
