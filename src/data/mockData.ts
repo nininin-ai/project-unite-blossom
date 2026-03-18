@@ -213,6 +213,7 @@ export const mockAssets: Asset[] = [
       { id: "c4", nature: "Gestion locative", annualAmount: 63000, rebillable: false, comment: "5% des loyers" },
       { id: "c5", nature: "Entretien technique", annualAmount: 48000, rebillable: true, rebillablePercent: 100, comment: "Contrat multi-technique" },
     ],
+    credits: [],
     floors: [
       { floor: 8, type: "Bureau", surface: 420, vacant: false },
       { floor: 9, type: "Bureau", surface: 380, vacant: true },
