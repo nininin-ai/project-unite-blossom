@@ -99,6 +99,7 @@ const AssetDetail = () => {
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="occupation" className="text-xs">Occupation</TabsTrigger>
           <TabsTrigger value="charges" className="text-xs">Charges / Coûts</TabsTrigger>
+          <TabsTrigger value="credits" className="text-xs">Crédits ({asset.credits?.length || 0})</TabsTrigger>
           <TabsTrigger value="info" className="text-xs">Informations</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
         </TabsList>
