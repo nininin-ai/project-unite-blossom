@@ -168,6 +168,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
           floors,
           tenants,
           charges,
+          credits,
         },
       },
       { onSuccess: () => onOpenChange(false) }
