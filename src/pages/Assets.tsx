@@ -47,25 +47,26 @@ const Assets = () => {
         </div>
         <div className="flex items-center gap-2">
           <AddAssetDialog />
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-          <Button
-            variant={view === "cards" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("cards")}
-            className="h-8 px-3"
-          >
-            <Grid3X3 className="h-4 w-4 mr-1.5" />
-            Cartes
-          </Button>
-          <Button
-            variant={view === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("table")}
-            className="h-8 px-3"
-          >
-            <List className="h-4 w-4 mr-1.5" />
-            Tableau
-          </Button>
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={view === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("cards")}
+              className="h-8 px-3"
+            >
+              <Grid3X3 className="h-4 w-4 mr-1.5" />
+              Cartes
+            </Button>
+            <Button
+              variant={view === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("table")}
+              className="h-8 px-3"
+            >
+              <List className="h-4 w-4 mr-1.5" />
+              Tableau
+            </Button>
+          </div>
         </div>
       </div>
 
