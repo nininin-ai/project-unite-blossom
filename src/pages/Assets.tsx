@@ -2,12 +2,18 @@ import { useState } from "react";
 import { mockAssets, Asset } from "@/data/mockData";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Building2, Grid3X3, List, MapPin, TrendingUp } from "lucide-react";
+import { Building2, Grid3X3, List, MapPin, TrendingUp, Trash2, Loader2 } from "lucide-react";
 import ExcelImport from "@/components/ExcelImport";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useAssets, useImportAssets, useDeleteAsset } from "@/hooks/useAssets";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -15,11 +21,20 @@ const formatCurrency = (value: number) =>
 type ViewMode = "cards" | "table";
 
 const Assets = () => {
-  const [assets, setAssets] = useState<Asset[]>(mockAssets);
   const [view, setView] = useState<ViewMode>("cards");
+  const { data: dbAssets, isLoading } = useAssets();
+  const importMutation = useImportAssets();
+  const deleteMutation = useDeleteAsset();
+
+  // Use DB assets if available, otherwise fall back to mock
+  const assets = dbAssets && dbAssets.length > 0 ? dbAssets : mockAssets;
 
   const handleImport = (newAssets: Asset[]) => {
-    setAssets((prev) => [...prev, ...newAssets]);
+    importMutation.mutate(newAssets);
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   return (
@@ -51,7 +66,11 @@ const Assets = () => {
         </div>
       </div>
 
-      {view === "cards" ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : view === "cards" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {assets.map((asset, i) => {
             const vacancyRate = (asset.vacantSurface / asset.totalSurface * 100).toFixed(1);
@@ -62,7 +81,36 @@ const Assets = () => {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
+                className="relative group/card"
               >
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      className="absolute top-3 right-3 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity p-1.5 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive"
+                      title="Supprimer cet actif"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer {asset.name} ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action est irréversible. L'actif sera définitivement supprimé du parc.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(asset.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <Link
                   to={`/assets/${asset.id}`}
                   className="block kpi-card group hover:border-accent/30 transition-all"
@@ -130,6 +178,7 @@ const Assets = () => {
                 <TableHead className="text-right">Vacance</TableHead>
                 <TableHead className="text-right">Risque</TableHead>
                 <TableHead className="text-center">Statut</TableHead>
+                <TableHead className="text-center w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,6 +210,35 @@ const Assets = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       {hasUnpaid && <span className="badge-danger">Impayé</span>}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer {asset.name} ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est irréversible. L'actif sera définitivement supprimé du parc.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(asset.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 );
