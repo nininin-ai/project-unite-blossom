@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Building2, ChevronDown, FolderKanban, LayoutDashboard, Scale, Star } from "lucide-react";
+import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import logoEquimmox from "@/assets/logo-equimmox.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navGroups = [
   {
