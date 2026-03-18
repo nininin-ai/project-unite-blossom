@@ -23,6 +23,7 @@ const getPappersUrl = (name: string, siren: string) => {
 
 const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
 
+
 const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
