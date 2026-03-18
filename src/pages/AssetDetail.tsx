@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Save, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -9,12 +9,9 @@ import {
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAsset, useUpdateAsset } from "@/hooks/useAssets";
+import { useAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
+import EditAssetDialog from "@/components/EditAssetDialog";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -24,17 +21,12 @@ const getPappersUrl = (name: string, siren: string) => {
   return `https://www.pappers.fr/entreprise/${slug}-${siren}`;
 };
 
-const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
-
 const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
-  const updateMutation = useUpdateAsset();
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [editOpen, setEditOpen] = useState(false);
 
-  // Use DB asset if available, fallback to mock for legacy IDs
   const mockAsset = mockAssets.find((a) => a.id === id);
   const asset = dbAsset ?? mockAsset;
 
@@ -49,44 +41,11 @@ const AssetDetail = () => {
   if (!asset) return <div className="p-8 text-center text-muted-foreground">Actif introuvable</div>;
 
   const vacancyRate = ((asset.vacantSurface / asset.totalSurface) * 100).toFixed(1);
-  const floorData = asset.floors.map((f) => ({
-    name: `Ét. ${f.floor}`, surface: f.surface, vacant: f.vacant ? f.surface : 0,
-  }));
   const chargeData = asset.charges.map((c) => ({ name: c.nature, value: c.annualAmount }));
   const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)", "hsl(38,92%,50%)", "hsl(0,72%,51%)", "hsl(270,50%,50%)"];
   const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
   const totalFloorSurface = asset.floors.reduce((s, f) => s + f.surface, 0);
   const totalFloorVacant = asset.floors.reduce((s, f) => s + (f.vacant ? f.surface : 0), 0);
-
-  const startEdit = () => {
-    setEditForm({
-      name: asset.name,
-      address: asset.address,
-      city: asset.city,
-      type: asset.type,
-      totalSurface: asset.totalSurface,
-      vacantSurface: asset.vacantSurface,
-      acquisitionPrice: asset.acquisitionPrice,
-      acquisitionDate: asset.acquisitionDate,
-      constructionYear: asset.constructionYear,
-      isCopropriete: asset.isCopropriete,
-      lastWorks: asset.lastWorks,
-      annualRent: asset.annualRent,
-      riskScore: asset.riskScore,
-    });
-    setEditing(true);
-  };
-
-  const saveEdit = () => {
-    if (!id || !dbAsset) return;
-    const yieldVal = editForm.acquisitionPrice > 0 ? +((editForm.annualRent / editForm.acquisitionPrice) * 100).toFixed(2) : 0;
-    updateMutation.mutate(
-      { id, updates: { ...editForm, yield: yieldVal } },
-      { onSuccess: () => setEditing(false) }
-    );
-  };
-
-  const setField = (key: string, value: any) => setEditForm((f) => ({ ...f, [key]: value }));
 
   const isDbAsset = !!dbAsset;
 
@@ -97,21 +56,10 @@ const AssetDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Retour au parc
         </Link>
         <div className="flex items-center gap-2">
-          {isDbAsset && !editing && (
-            <Button size="sm" variant="outline" onClick={startEdit} className="gap-1.5">
+          {isDbAsset && (
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5">
               <Pencil className="h-3.5 w-3.5" /> Modifier
             </Button>
-          )}
-          {editing && (
-            <>
-              <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="gap-1.5">
-                <X className="h-3.5 w-3.5" /> Annuler
-              </Button>
-              <Button size="sm" onClick={saveEdit} disabled={updateMutation.isPending} className="gap-1.5">
-                {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Enregistrer
-              </Button>
-            </>
           )}
           <Link to={`/assets/${id}/fiche-commerciale`} className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 transition-colors">
             <FileSpreadsheet className="h-4 w-4" /> Fiche de commercialisation
@@ -337,103 +285,39 @@ const AssetDetail = () => {
         <TabsContent value="info">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card max-w-2xl">
             <h3 className="text-sm font-semibold text-foreground mb-4">Informations du bien</h3>
-            {editing ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Nom</Label>
-                  <Input value={editForm.name} onChange={(e) => setField("name", e.target.value)} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              {[
+                { label: "Type de bien", value: asset.type },
+                { label: "Copropriété", value: asset.isCopropriete ? "Oui" : "Non" },
+                { label: "Année de construction", value: asset.constructionYear.toString() },
+                { label: "Derniers travaux", value: asset.lastWorks },
+                { label: "Prix d'acquisition", value: formatCurrency(asset.acquisitionPrice) },
+                { label: "Date d'acquisition", value: new Date(asset.acquisitionDate).toLocaleDateString("fr-FR") },
+                { label: "Surface totale", value: `${asset.totalSurface.toLocaleString("fr-FR")} m²` },
+                { label: "Nombre de locataires", value: asset.tenants.length.toString() },
+              ].map((item) => (
+                <div key={item.label} className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="font-medium text-foreground">{item.value}</span>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Adresse</Label>
-                  <Input value={editForm.address} onChange={(e) => setField("address", e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Ville</Label>
-                  <Input value={editForm.city} onChange={(e) => setField("city", e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Type</Label>
-                  <Select value={editForm.type} onValueChange={(v) => setField("type", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ASSET_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Surface totale (m²)</Label>
-                  <Input type="number" value={editForm.totalSurface} onChange={(e) => setField("totalSurface", +e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Surface vacante (m²)</Label>
-                  <Input type="number" value={editForm.vacantSurface} onChange={(e) => setField("vacantSurface", +e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Prix d'acquisition (€)</Label>
-                  <Input type="number" value={editForm.acquisitionPrice} onChange={(e) => setField("acquisitionPrice", +e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Date d'acquisition</Label>
-                  <Input type="date" value={editForm.acquisitionDate} onChange={(e) => setField("acquisitionDate", e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Année construction</Label>
-                  <Input type="number" value={editForm.constructionYear} onChange={(e) => setField("constructionYear", +e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Loyer annuel (€)</Label>
-                  <Input type="number" value={editForm.annualRent} onChange={(e) => setField("annualRent", +e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Derniers travaux</Label>
-                  <Input value={editForm.lastWorks} onChange={(e) => setField("lastWorks", e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Score risque</Label>
-                  <Input type="number" value={editForm.riskScore} onChange={(e) => setField("riskScore", +e.target.value)} />
-                </div>
-                <div className="flex items-center gap-3 col-span-2">
-                  <Switch checked={editForm.isCopropriete} onCheckedChange={(v) => setField("isCopropriete", v)} />
-                  <Label>Copropriété</Label>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  {[
-                    { label: "Type de bien", value: asset.type },
-                    { label: "Copropriété", value: asset.isCopropriete ? "Oui" : "Non" },
-                    { label: "Année de construction", value: asset.constructionYear.toString() },
-                    { label: "Derniers travaux", value: asset.lastWorks },
-                    { label: "Prix d'acquisition", value: formatCurrency(asset.acquisitionPrice) },
-                    { label: "Date d'acquisition", value: new Date(asset.acquisitionDate).toLocaleDateString("fr-FR") },
-                    { label: "Surface totale", value: `${asset.totalSurface.toLocaleString("fr-FR")} m²` },
-                    { label: "Nombre de locataires", value: asset.tenants.length.toString() },
-                  ].map((item) => (
-                    <div key={item.label} className="flex justify-between py-2 border-b border-border/50">
-                      <span className="text-muted-foreground">{item.label}</span>
-                      <span className="font-medium text-foreground">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
+              ))}
+            </div>
 
-                <h4 className="text-sm font-semibold text-foreground mt-6 mb-3">Détail par étage</h4>
-                <div className="space-y-2">
-                  {asset.floors.map((f) => (
-                    <div key={f.floor} className="flex items-center justify-between py-2 border-b border-border/50">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-foreground">Étage {f.floor}</span>
-                        <span className="badge-neutral">{f.type}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground">{f.surface} m²</span>
-                        {f.vacant ? <span className="badge-warning">Vacant</span> : <span className="badge-success">Occupé</span>}
-                      </div>
-                    </div>
-                  ))}
+            <h4 className="text-sm font-semibold text-foreground mt-6 mb-3">Détail par étage</h4>
+            <div className="space-y-2">
+              {asset.floors.map((f) => (
+                <div key={f.floor} className="flex items-center justify-between py-2 border-b border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Étage {f.floor}</span>
+                    <span className="badge-neutral">{f.type}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">{f.surface} m²</span>
+                    {f.vacant ? <span className="badge-warning">Vacant</span> : <span className="badge-success">Occupé</span>}
+                  </div>
                 </div>
-              </>
-            )}
+              ))}
+            </div>
           </motion.div>
         </TabsContent>
 
@@ -443,6 +327,10 @@ const AssetDetail = () => {
           </motion.div>
         </TabsContent>
       </Tabs>
+
+      {isDbAsset && asset && (
+        <EditAssetDialog asset={asset} open={editOpen} onOpenChange={setEditOpen} />
+      )}
     </div>
   );
 };
