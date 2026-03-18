@@ -65,6 +65,7 @@ export type Database = {
           city: string
           construction_year: number
           created_at: string
+          credits: Json
           floors: Json
           id: string
           is_copropriete: boolean
@@ -88,6 +89,7 @@ export type Database = {
           city?: string
           construction_year?: number
           created_at?: string
+          credits?: Json
           floors?: Json
           id?: string
           is_copropriete?: boolean
@@ -111,6 +113,7 @@ export type Database = {
           city?: string
           construction_year?: number
           created_at?: string
+          credits?: Json
           floors?: Json
           id?: string
           is_copropriete?: boolean

@@ -1,0 +1,1 @@
+ALTER TABLE public.assets ADD COLUMN credits jsonb NOT NULL DEFAULT '[]'::jsonb;
