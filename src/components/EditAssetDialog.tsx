@@ -431,6 +431,109 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
             )}
           </TabsContent>
 
+          {/* ── Credits ── */}
+          <TabsContent value="credits" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Gérez les crédits bancaires associés à cet actif.</p>
+              <Button size="sm" variant="outline" onClick={() => setCredits((c) => [...c, emptyCredit()])} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Ajouter
+              </Button>
+            </div>
+            {credits.map((cr, i) => (
+              <div key={cr.id} className="rounded-lg border border-border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{cr.bank || `Crédit ${i + 1}`}</span>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setCredits((p) => p.filter((_, j) => j !== i))}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Banque</Label>
+                    <Input value={cr.bank} onChange={(e) => updateCredit(i, "bank", e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Objet du prêt</Label>
+                    <Select value={cr.purpose} onValueChange={(v) => updateCredit(i, "purpose", v)}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CREDIT_PURPOSES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Capital emprunté (€)</Label>
+                    <Input type="number" value={cr.totalCapital} onChange={(e) => updateCredit(i, "totalCapital", +e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Capital restant dû (€)</Label>
+                    <Input type="number" value={cr.remainingCapital} onChange={(e) => updateCredit(i, "remainingCapital", +e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Mensualité (€)</Label>
+                    <Input type="number" value={cr.monthlyPayment} onChange={(e) => updateCredit(i, "monthlyPayment", +e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Taux (%)</Label>
+                    <Input type="number" step="0.01" value={cr.interestRate} onChange={(e) => updateCredit(i, "interestRate", +e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Type de taux</Label>
+                    <Select value={cr.rateType} onValueChange={(v) => updateCredit(i, "rateType", v)}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {RATE_TYPES.map((rt) => <SelectItem key={rt} value={rt}>{rt}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Durée (mois)</Label>
+                    <Input type="number" value={cr.duration} onChange={(e) => updateCredit(i, "duration", +e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Date de début</Label>
+                    <Input type="date" value={cr.startDate} onChange={(e) => updateCredit(i, "startDate", e.target.value)} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-[10px]">Date de fin théorique</Label>
+                    <Input type="date" value={cr.endDate} onChange={(e) => updateCredit(i, "endDate", e.target.value)} />
+                  </div>
+                  <div className="grid gap-1 col-span-2 sm:col-span-3">
+                    <Label className="text-[10px]">Pénalités de remboursement anticipé</Label>
+                    <Input value={cr.earlyRepaymentPenalty} onChange={(e) => updateCredit(i, "earlyRepaymentPenalty", e.target.value)} placeholder="Ex: 3% du capital restant dû" />
+                  </div>
+                  <div className="col-span-2 sm:col-span-3">
+                    <Label className="text-[10px]">Tableau d'amortissement (PDF)</Label>
+                    {cr.amortizationDocName ? (
+                      <div className="flex items-center gap-2 mt-1 p-2 rounded-lg bg-muted/50 border border-border/50">
+                        <FileText className="h-4 w-4 text-accent" />
+                        <span className="text-sm text-foreground flex-1">{cr.amortizationDocName}</span>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => { updateCredit(i, "amortizationDocPath", ""); updateCredit(i, "amortizationDocName", ""); }}>
+                          Supprimer
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-1">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-border bg-background hover:bg-muted cursor-pointer transition-colors">
+                          <Upload className="h-3.5 w-3.5" /> Uploader un PDF
+                          <input type="file" accept=".pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAmortizationUpload(i, f); }} />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {credits.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Aucun crédit défini</p>}
+            {credits.length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total emprunté</span><span className="font-semibold text-foreground">{credits.reduce((s, c) => s + c.totalCapital, 0).toLocaleString("fr-FR")} €</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Capital restant dû total</span><span className="font-semibold text-foreground">{credits.reduce((s, c) => s + c.remainingCapital, 0).toLocaleString("fr-FR")} €</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Mensualités totales</span><span className="font-semibold text-foreground">{credits.reduce((s, c) => s + c.monthlyPayment, 0).toLocaleString("fr-FR")} €</span></div>
+              </div>
+            )}
+          </TabsContent>
+
           {/* ── Documents ── */}
           <TabsContent value="documents">
             <AssetDocuments assetId={asset.id} />
