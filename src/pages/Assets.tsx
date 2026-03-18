@@ -40,11 +40,13 @@ const Assets = () => {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Parc Immobilier</h1>
           <p className="text-sm text-muted-foreground mt-1">{assets.length} actifs sous gestion</p>
         </div>
+        <div className="flex items-center gap-2">
+          <AddAssetDialog />
         <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
           <Button
             variant={view === "cards" ? "default" : "ghost"}
