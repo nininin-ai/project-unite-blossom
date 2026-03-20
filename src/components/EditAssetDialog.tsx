@@ -15,7 +15,7 @@ import AssetDocuments from "@/components/AssetDocuments";
 
 const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
 const LEASE_TYPES = ["3/6/9", "6/9", "Dérogatoire", "Précaire", "Professionnel"];
-const RATE_TYPES = ["Fixe", "Variable", "Capé"];
+
 
 interface EditAssetDialogProps {
   asset: Asset;
