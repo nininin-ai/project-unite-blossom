@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { Asset, Tenant, Charge } from "@/data/mockData";
 import { useUpdateAsset } from "@/hooks/useAssets";
-import { useUpdateAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
 
 const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
