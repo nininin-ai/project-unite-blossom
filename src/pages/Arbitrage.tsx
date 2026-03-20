@@ -172,17 +172,31 @@ const Arbitrage = () => {
   const avgHealth = Math.round(analyses.reduce((s, a) => s + a.healthScore, 0) / analyses.length);
 
   // Check data completeness
-  const missingTenants = assets.filter((a) => !a.tenants || a.tenants.length === 0);
-  const missingCharges = assets.filter((a) => !a.charges || a.charges.length === 0);
+  const missingTenants = safeAssets.filter((a) => !a.tenants || a.tenants.length === 0);
+  const missingCharges = safeAssets.filter((a) => !a.charges || a.charges.length === 0);
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Arbitrage Stratégique</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Analyse du parc basée sur vos données réelles — rendement, cash-flow, crédits et risques
+          Analyse du parc basée sur vos données — rendement, cash-flow, crédits et risques
         </p>
       </div>
+
+      {isDemo && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center gap-3">
+          <Building2 className="h-5 w-5 text-accent shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Données de démonstration</p>
+            <p className="text-xs text-muted-foreground">
+              Ajoutez vos premiers actifs pour remplacer ces exemples par vos données réelles.{" "}
+              <Link to="/assets" className="text-accent hover:underline font-medium">Ajouter un actif →</Link>
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {(missingTenants.length > 0 || missingCharges.length > 0) && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
