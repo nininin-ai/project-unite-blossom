@@ -1,5 +1,5 @@
 import { useAssets } from "@/hooks/useAssets";
-import { Asset } from "@/data/mockData";
+import { Asset, mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {

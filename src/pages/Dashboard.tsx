@@ -1,4 +1,5 @@
 import { useAssets } from "@/hooks/useAssets";
+import { mockAssets } from "@/data/mockData";
 import { fundTargets } from "@/data/marketData";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, ShieldAlert, TrendingUp, Info } from "lucide-react";
