@@ -1,4 +1,5 @@
 import { useAssets } from "@/hooks/useAssets";
+import { mockAssets } from "@/data/mockData";
 import { fundTargets } from "@/data/marketData";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, ShieldAlert, TrendingUp, Info } from "lucide-react";
@@ -34,26 +35,8 @@ const Dashboard = () => {
     );
   }
 
-  const safeAssets = assets ?? [];
-
-  if (safeAssets.length === 0) {
-    return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-          <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble du parc et du pipeline d'investissement</p>
-        </div>
-        <div className="kpi-card flex flex-col items-center justify-center py-16">
-          <Building2 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <p className="text-lg font-semibold text-foreground mb-1">Aucun actif dans votre parc</p>
-          <p className="text-sm text-muted-foreground mb-4">Ajoutez vos premiers actifs pour voir apparaître le tableau de bord.</p>
-          <button onClick={() => navigate("/assets")} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition">
-            Ajouter un actif
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const safeAssets = assets && assets.length > 0 ? assets : mockAssets;
+  const isDemo = !assets || assets.length === 0;
 
   const totalRent = safeAssets.reduce((s, a) => s + a.annualRent, 0);
   const totalValue = safeAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
@@ -102,6 +85,20 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
         <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble du parc et du pipeline d'investissement</p>
       </div>
+
+      {isDemo && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center gap-3">
+          <Building2 className="h-5 w-5 text-accent shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Données de démonstration</p>
+            <p className="text-xs text-muted-foreground">
+              Ajoutez vos premiers actifs pour remplacer ces exemples par vos données réelles.{" "}
+              <button onClick={() => navigate("/assets")} className="text-accent hover:underline font-medium">Ajouter un actif →</button>
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

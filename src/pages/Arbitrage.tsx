@@ -1,5 +1,5 @@
 import { useAssets } from "@/hooks/useAssets";
-import { Asset } from "@/data/mockData";
+import { Asset, mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -154,27 +154,17 @@ const Arbitrage = () => {
     );
   }
 
-  if (!assets || assets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
-        <Building2 className="h-12 w-12 text-muted-foreground/40" />
-        <h2 className="text-xl font-semibold text-foreground">Aucun actif à analyser</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          Ajoutez des actifs à votre parc et renseignez leurs informations (loyers, charges, crédits) pour générer l'analyse d'arbitrage.
-        </p>
-        <Link to="/assets" className="text-sm font-medium text-accent hover:underline flex items-center gap-1">
-          Aller au parc immobilier <ArrowUpRight className="h-3 w-3" />
-        </Link>
-      </div>
-    );
-  }
+  const safeAssets = assets && assets.length > 0 ? assets : mockAssets;
+  const isDemo = !assets || assets.length === 0;
 
-  const totalAUM = assets.reduce((s, a) => s + a.acquisitionPrice, 0);
+  const totalAUM = safeAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
   const portfolioAvgYield = totalAUM > 0
-    ? assets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalAUM
+    ? safeAssets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalAUM
     : 0;
 
-  const analyses = assets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
+  const analyses = safeAssets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
+
+  
 
   const negativeCF = analyses.filter((a) => a.cashFlow < 0);
   const withUnpaid = analyses.filter((a) => a.unpaidTotal > 0);
@@ -182,17 +172,31 @@ const Arbitrage = () => {
   const avgHealth = Math.round(analyses.reduce((s, a) => s + a.healthScore, 0) / analyses.length);
 
   // Check data completeness
-  const missingTenants = assets.filter((a) => !a.tenants || a.tenants.length === 0);
-  const missingCharges = assets.filter((a) => !a.charges || a.charges.length === 0);
+  const missingTenants = safeAssets.filter((a) => !a.tenants || a.tenants.length === 0);
+  const missingCharges = safeAssets.filter((a) => !a.charges || a.charges.length === 0);
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Arbitrage Stratégique</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Analyse du parc basée sur vos données réelles — rendement, cash-flow, crédits et risques
+          Analyse du parc basée sur vos données — rendement, cash-flow, crédits et risques
         </p>
       </div>
+
+      {isDemo && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center gap-3">
+          <Building2 className="h-5 w-5 text-accent shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Données de démonstration</p>
+            <p className="text-xs text-muted-foreground">
+              Ajoutez vos premiers actifs pour remplacer ces exemples par vos données réelles.{" "}
+              <Link to="/assets" className="text-accent hover:underline font-medium">Ajouter un actif →</Link>
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {(missingTenants.length > 0 || missingCharges.length > 0) && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
