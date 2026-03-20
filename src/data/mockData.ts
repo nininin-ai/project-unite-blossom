@@ -46,7 +46,7 @@ export interface Asset {
   riskScore: number;
   tenants: Tenant[];
   charges: Charge[];
-  credits: Credit[];
+  
   floors: { floor: number; type: string; surface: number; vacant: boolean }[];
 }
 
