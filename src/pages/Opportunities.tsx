@@ -118,83 +118,6 @@ const Opportunities = () => {
         </p>
       </div>
 
-      {/* Import block */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Excel import */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Importer un fichier</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Importez vos opportunités depuis un fichier Excel</p>
-            </div>
-            <FileSpreadsheet className="h-4 w-4 text-accent" />
-          </div>
-
-          {!file ? (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"}`}
-              onClick={() => inputRef.current?.click()}
-            >
-              <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-              <p className="text-xs font-medium text-foreground">Glissez-déposez votre fichier Excel</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Colonnes : Nom, Ville, Type, Surface, Prix demandé, Loyer, Rendement</p>
-              <Button variant="default" size="sm" className="mt-3 text-xs">Parcourir</Button>
-              <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ""; }} />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border">
-                <FileSpreadsheet className="h-4 w-4 text-accent shrink-0" />
-                <p className="text-xs font-medium text-foreground truncate flex-1">{file.name}</p>
-                <button onClick={resetImport} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
-              </div>
-              {error && <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-2">{error}</p>}
-              {parseResult && (
-                <>
-                  <p className="text-xs text-[hsl(var(--success))] bg-[hsl(var(--success)/0.1)] rounded-lg p-2">
-                    {parseResult.count} opportunité(s) détectée(s)
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={resetImport} className="flex-1 text-xs">Annuler</Button>
-                    <Button size="sm" onClick={handleConfirmImport} className="flex-1 text-xs">Importer {parseResult.count}</Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </motion.div>
-
-        {/* Email forward block */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="kpi-card flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Transférer par email</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Transférez les opportunités reçues par mail</p>
-            </div>
-            <Mail className="h-4 w-4 text-accent" />
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center text-center rounded-xl border-2 border-dashed border-border p-6 gap-3">
-            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-              <Mail className="h-5 w-5 text-accent" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">
-                Transférez les opportunités reçues par email directement à :
-              </p>
-              <p className="text-sm font-semibold text-foreground mt-1 select-all">
-                demo-doc@equimmox.com
-              </p>
-            </div>
-            <p className="text-[10px] text-muted-foreground max-w-xs">
-              Les documents seront automatiquement analysés et ajoutés à votre liste d'opportunités.
-            </p>
-          </div>
-        </motion.div>
-      </div>
-
       {/* KPI summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
@@ -254,6 +177,60 @@ const Opportunities = () => {
             ))}
           </tbody>
         </table>
+      </motion.div>
+
+      {/* Import block - below table */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }} className="kpi-card">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Importer des opportunités</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Importez vos info-mémos, teasers ou offres (PDF, Excel…)</p>
+          </div>
+          <Upload className="h-4 w-4 text-accent" />
+        </div>
+
+        {!file ? (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"}`}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+            <p className="text-xs font-medium text-foreground">Glissez-déposez vos documents ici</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Formats supportés : PDF, Excel (.xlsx, .xls) · Info-mémos, teasers, offres</p>
+            <Button variant="default" size="sm" className="mt-3 text-xs">Parcourir les fichiers</Button>
+            <input ref={inputRef} type="file" accept=".xlsx,.xls,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ""; }} />
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                <Mail className="h-3 w-3" />
+                Vous pouvez aussi transférer vos opportunités reçues par email à{" "}
+                <span className="font-semibold text-foreground select-all">demo-doc@equimmox.com</span>
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border">
+              <FileSpreadsheet className="h-4 w-4 text-accent shrink-0" />
+              <p className="text-xs font-medium text-foreground truncate flex-1">{file.name}</p>
+              <button onClick={resetImport} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+            </div>
+            {error && <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-2">{error}</p>}
+            {parseResult && (
+              <>
+                <p className="text-xs text-[hsl(var(--success))] bg-[hsl(var(--success)/0.1)] rounded-lg p-2">
+                  {parseResult.count} opportunité(s) détectée(s)
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={resetImport} className="flex-1 text-xs">Annuler</Button>
+                  <Button size="sm" onClick={handleConfirmImport} className="flex-1 text-xs">Importer {parseResult.count}</Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );
