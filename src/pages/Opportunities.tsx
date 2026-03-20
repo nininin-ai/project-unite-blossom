@@ -52,7 +52,7 @@ const parseExcelToOpportunities = (data: Record<string, unknown>[]): NewOpportun
         strengths: [],
         weaknesses: [],
         analysisDecision: "",
-        analysisDecisionStatus: "",
+        analysisDecisionStatus: "Neutre",
         portfolioImpact: "",
         portfolioReasons: [],
         globalSummary: "",
