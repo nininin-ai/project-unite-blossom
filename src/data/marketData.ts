@@ -7,8 +7,12 @@ export interface MarketReference {
 }
 
 export const marketReferences: MarketReference[] = [
-  { assetType: "Bureau", city: "Paris", capRateMarket: 5.5, rentPerSqmMarket: 350 },
-  { assetType: "Commerce", city: "IDF", capRateMarket: 6.0, rentPerSqmMarket: 250 },
+  { assetType: "Logistique", city: "Marne-la-Vallée", capRateMarket: 5.5, rentPerSqmMarket: 80 },
+  { assetType: "Commerce", city: "Paris 1er", capRateMarket: 4.0, rentPerSqmMarket: 250 },
+  { assetType: "Bureau", city: "Paris 15e", capRateMarket: 5.0, rentPerSqmMarket: 320 },
+  { assetType: "Commerce", city: "Mérignac", capRateMarket: 6.0, rentPerSqmMarket: 250 },
+  { assetType: "Commerce", city: "Lieusaint", capRateMarket: 6.0, rentPerSqmMarket: 250 },
+  { assetType: "Bureau", city: "Marseille", capRateMarket: 6.5, rentPerSqmMarket: 320 },
   { assetType: "Résidentiel", city: "Lyon", capRateMarket: 4.5, rentPerSqmMarket: 180 },
   { assetType: "Bureau", city: "Sophia Antipolis", capRateMarket: 7.0, rentPerSqmMarket: 220 },
 ];
