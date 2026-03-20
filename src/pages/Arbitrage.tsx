@@ -154,20 +154,8 @@ const Arbitrage = () => {
     );
   }
 
-  if (!assets || assets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
-        <Building2 className="h-12 w-12 text-muted-foreground/40" />
-        <h2 className="text-xl font-semibold text-foreground">Aucun actif à analyser</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          Ajoutez des actifs à votre parc et renseignez leurs informations (loyers, charges, crédits) pour générer l'analyse d'arbitrage.
-        </p>
-        <Link to="/assets" className="text-sm font-medium text-accent hover:underline flex items-center gap-1">
-          Aller au parc immobilier <ArrowUpRight className="h-3 w-3" />
-        </Link>
-      </div>
-    );
-  }
+  const safeAssets = assets && assets.length > 0 ? assets : mockAssets;
+  const isDemo = !assets || assets.length === 0;
 
   const totalAUM = assets.reduce((s, a) => s + a.acquisitionPrice, 0);
   const portfolioAvgYield = totalAUM > 0

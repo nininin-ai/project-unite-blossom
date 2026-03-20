@@ -35,26 +35,8 @@ const Dashboard = () => {
     );
   }
 
-  const safeAssets = assets ?? [];
-
-  if (safeAssets.length === 0) {
-    return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-          <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble du parc et du pipeline d'investissement</p>
-        </div>
-        <div className="kpi-card flex flex-col items-center justify-center py-16">
-          <Building2 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <p className="text-lg font-semibold text-foreground mb-1">Aucun actif dans votre parc</p>
-          <p className="text-sm text-muted-foreground mb-4">Ajoutez vos premiers actifs pour voir apparaître le tableau de bord.</p>
-          <button onClick={() => navigate("/assets")} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition">
-            Ajouter un actif
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const safeAssets = assets && assets.length > 0 ? assets : mockAssets;
+  const isDemo = !assets || assets.length === 0;
 
   const totalRent = safeAssets.reduce((s, a) => s + a.annualRent, 0);
   const totalValue = safeAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
