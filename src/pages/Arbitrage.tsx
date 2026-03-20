@@ -157,10 +157,12 @@ const Arbitrage = () => {
   const safeAssets = assets && assets.length > 0 ? assets : mockAssets;
   const isDemo = !assets || assets.length === 0;
 
-  const totalAUM = assets.reduce((s, a) => s + a.acquisitionPrice, 0);
+  const totalAUM = safeAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
   const portfolioAvgYield = totalAUM > 0
-    ? assets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalAUM
+    ? safeAssets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalAUM
     : 0;
+
+  const analyses = safeAssets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
 
   const analyses = assets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
 

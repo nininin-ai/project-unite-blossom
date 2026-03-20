@@ -86,6 +86,20 @@ const Dashboard = () => {
         <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble du parc et du pipeline d'investissement</p>
       </div>
 
+      {isDemo && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center gap-3">
+          <Building2 className="h-5 w-5 text-accent shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Données de démonstration</p>
+            <p className="text-xs text-muted-foreground">
+              Ajoutez vos premiers actifs pour remplacer ces exemples par vos données réelles.{" "}
+              <button onClick={() => navigate("/assets")} className="text-accent hover:underline font-medium">Ajouter un actif →</button>
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
