@@ -61,22 +61,6 @@ const emptyFloor = (nextFloor: number): FloorRow => ({
   vacant: true,
 });
 
-const emptyCredit = (): Credit => ({
-  id: crypto.randomUUID(),
-  bank: "",
-  purpose: "Acquisition",
-  totalCapital: 0,
-  remainingCapital: 0,
-  monthlyPayment: 0,
-  interestRate: 0,
-  rateType: "Fixe",
-  duration: 0,
-  startDate: "",
-  endDate: "",
-  earlyRepaymentPenalty: "",
-  amortizationDocPath: "",
-  amortizationDocName: "",
-});
 
 const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) => {
   const updateMutation = useUpdateAsset();
