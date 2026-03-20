@@ -232,3 +232,8 @@ const Opportunities = () => {
           </div>
         )}
       </motion.div>
+    </div>
+  );
+};
+
+export default Opportunities;
