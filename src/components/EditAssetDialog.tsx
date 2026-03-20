@@ -124,16 +124,6 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
   };
 
 
-  const handleAmortizationUpload = async (creditIdx: number, file: File) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const filePath = `${user.id}/${asset.id}/amort_${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from("asset-documents").upload(filePath, file);
-    if (!error) {
-      updateCredit(creditIdx, "amortizationDocPath", filePath);
-      updateCredit(creditIdx, "amortizationDocName", file.name);
-    }
-  };
 
   const handleSave = () => {
     const yieldVal = form.acquisitionPrice > 0 ? +((form.annualRent / form.acquisitionPrice) * 100).toFixed(2) : 0;
