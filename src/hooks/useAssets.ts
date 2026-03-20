@@ -63,7 +63,7 @@ const assetToDbRow = (asset: Asset, userId: string) => ({
   risk_score: asset.riskScore,
   tenants: asset.tenants as unknown as Json,
   charges: asset.charges as unknown as Json,
-  credits: asset.credits as unknown as Json,
+  
   floors: asset.floors as unknown as Json,
 });
 
