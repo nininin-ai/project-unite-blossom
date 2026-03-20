@@ -123,9 +123,6 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
     setCharges((prev) => prev.map((c, i) => (i === idx ? { ...c, [key]: value } : c)));
   };
 
-  const updateCredit = (idx: number, key: keyof Credit, value: any) => {
-    setCredits((prev) => prev.map((cr, i) => (i === idx ? { ...cr, [key]: value } : cr)));
-  };
 
   const handleAmortizationUpload = async (creditIdx: number, file: File) => {
     const { data: { user } } = await supabase.auth.getUser();
