@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Loader2, Landmark, Download } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -99,7 +99,6 @@ const AssetDetail = () => {
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="occupation" className="text-xs">Occupation</TabsTrigger>
           <TabsTrigger value="charges" className="text-xs">Charges / Coûts</TabsTrigger>
-          <TabsTrigger value="credits" className="text-xs">Crédits ({asset.credits?.length || 0})</TabsTrigger>
           <TabsTrigger value="info" className="text-xs">Informations</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
         </TabsList>
@@ -281,87 +280,6 @@ const AssetDetail = () => {
               </div>
             </div>
           </div>
-        </TabsContent>
-
-        {/* ── Credits tab ── */}
-        <TabsContent value="credits" className="space-y-4">
-          {(!asset.credits || asset.credits.length === 0) ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card text-center py-12">
-              <Landmark className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="text-sm text-muted-foreground">Aucun crédit renseigné pour cet actif.</p>
-              {isDbAsset && (
-                <Button size="sm" variant="outline" className="mt-4 gap-1.5" onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-3.5 w-3.5" /> Ajouter un crédit
-                </Button>
-              )}
-            </motion.div>
-          ) : (
-            asset.credits.map((cr, idx) => (
-              <motion.div key={cr.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="kpi-card">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Landmark className="h-4.5 w-4.5 text-accent" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{cr.bank || "Banque non renseignée"}</h3>
-                    <p className="text-xs text-muted-foreground">{cr.purpose}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-                  {[
-                    { label: "Capital emprunté", value: formatCurrency(cr.totalCapital) },
-                    { label: "Capital restant dû", value: formatCurrency(cr.remainingCapital) },
-                    { label: "Mensualité", value: formatCurrency(cr.monthlyPayment) },
-                    { label: "Taux", value: `${cr.interestRate}%` },
-                    { label: "Type de taux", value: cr.rateType },
-                    { label: "Durée", value: `${cr.duration} mois` },
-                    { label: "Début", value: cr.startDate ? new Date(cr.startDate).toLocaleDateString("fr-FR") : "–" },
-                    { label: "Fin théorique", value: cr.endDate ? new Date(cr.endDate).toLocaleDateString("fr-FR") : "–" },
-                    { label: "Pénalités RA", value: cr.earlyRepaymentPenalty || "–" },
-                  ].map((item) => (
-                    <div key={item.label} className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</span>
-                      <span className="font-medium text-foreground mt-0.5">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-                {cr.amortizationDocName && (
-                  <div className="mt-4 pt-3 border-t border-border/50">
-                    <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border border-border/50">
-                      <FileText className="h-4 w-4 text-accent" />
-                      <span className="text-sm text-foreground flex-1">{cr.amortizationDocName}</span>
-                      {cr.amortizationDocPath && (
-                        <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={async () => {
-                          const { data } = await import("@/integrations/supabase/client").then(m => m.supabase.storage.from("asset-documents").createSignedUrl(cr.amortizationDocPath!, 60));
-                          if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-                        }}>
-                          <Download className="h-3 w-3" /> Ouvrir
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ))
-          )}
-          {asset.credits && asset.credits.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total emprunté</span>
-                  <span className="font-bold text-foreground text-lg">{formatCurrency(asset.credits.reduce((s, c) => s + c.totalCapital, 0))}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Capital restant dû total</span>
-                  <span className="font-bold text-foreground text-lg">{formatCurrency(asset.credits.reduce((s, c) => s + c.remainingCapital, 0))}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Mensualités totales</span>
-                  <span className="font-bold text-foreground text-lg">{formatCurrency(asset.credits.reduce((s, c) => s + c.monthlyPayment, 0))}</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </TabsContent>
 
         <TabsContent value="info">

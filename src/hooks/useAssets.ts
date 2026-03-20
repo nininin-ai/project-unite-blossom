@@ -41,7 +41,7 @@ const dbRowToAsset = (row: {
   riskScore: row.risk_score,
   tenants: (row.tenants as unknown as Asset["tenants"]) ?? [],
   charges: (row.charges as unknown as Asset["charges"]) ?? [],
-  credits: ((row as any).credits as unknown as Asset["credits"]) ?? [],
+  
   floors: (row.floors as unknown as Asset["floors"]) ?? [],
 });
 
@@ -63,7 +63,7 @@ const assetToDbRow = (asset: Asset, userId: string) => ({
   risk_score: asset.riskScore,
   tenants: asset.tenants as unknown as Json,
   charges: asset.charges as unknown as Json,
-  credits: asset.credits as unknown as Json,
+  
   floors: asset.floors as unknown as Json,
 });
 
@@ -171,7 +171,7 @@ export const useUpdateAsset = () => {
       if (updates.riskScore !== undefined) dbUpdates.risk_score = updates.riskScore;
       if (updates.tenants !== undefined) dbUpdates.tenants = updates.tenants as unknown as Json;
       if (updates.charges !== undefined) dbUpdates.charges = updates.charges as unknown as Json;
-      if (updates.credits !== undefined) dbUpdates.credits = updates.credits as unknown as Json;
+      
       if (updates.floors !== undefined) dbUpdates.floors = updates.floors as unknown as Json;
 
       const { error } = await supabase.from("assets").update(dbUpdates).eq("id", id);

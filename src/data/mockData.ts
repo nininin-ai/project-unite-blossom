@@ -28,23 +28,6 @@ export interface Charge {
   document?: string;
 }
 
-export interface Credit {
-  id: string;
-  bank: string;
-  purpose: string; // acquisition, travaux, refinancement
-  totalCapital: number;
-  remainingCapital: number;
-  monthlyPayment: number;
-  interestRate: number;
-  rateType: string; // fixe, variable, capé
-  duration: number; // months
-  startDate: string;
-  endDate: string;
-  earlyRepaymentPenalty: string;
-  amortizationDocPath?: string;
-  amortizationDocName?: string;
-}
-
 export interface Asset {
   id: string;
   name: string;
@@ -63,7 +46,7 @@ export interface Asset {
   riskScore: number;
   tenants: Tenant[];
   charges: Charge[];
-  credits: Credit[];
+  
   floors: { floor: number; type: string; surface: number; vacant: boolean }[];
 }
 
@@ -213,7 +196,6 @@ export const mockAssets: Asset[] = [
       { id: "c4", nature: "Gestion locative", annualAmount: 63000, rebillable: false, comment: "5% des loyers" },
       { id: "c5", nature: "Entretien technique", annualAmount: 48000, rebillable: true, rebillablePercent: 100, comment: "Contrat multi-technique" },
     ],
-    credits: [],
     floors: [
       { floor: 8, type: "Bureau", surface: 420, vacant: false },
       { floor: 9, type: "Bureau", surface: 380, vacant: true },
@@ -249,7 +231,6 @@ export const mockAssets: Asset[] = [
       { id: "c8", nature: "Entretien espaces verts", annualAmount: 15000, rebillable: true, rebillablePercent: 100, comment: "" },
       { id: "c9", nature: "Gestion locative", annualAmount: 31000, rebillable: false, comment: "5% des loyers" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Commerce", surface: 1800, vacant: false },
       { floor: 1, type: "Commerce/Sport", surface: 1000, vacant: false },
@@ -280,7 +261,6 @@ export const mockAssets: Asset[] = [
       { id: "c11", nature: "Charges copropriété", annualAmount: 52000, rebillable: true, rebillablePercent: 70, comment: "" },
       { id: "c12", nature: "Assurance PNO", annualAmount: 8500, rebillable: false, comment: "" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Commerce", surface: 200, vacant: true },
       { floor: 1, type: "Résidentiel", surface: 300, vacant: false },
@@ -317,7 +297,6 @@ export const mockAssets: Asset[] = [
       { id: "c16", nature: "Gestion locative", annualAmount: 87500, rebillable: false, comment: "5% des loyers" },
       { id: "c17", nature: "Sécurité / gardiennage", annualAmount: 56000, rebillable: true, rebillablePercent: 50, comment: "" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Accueil / Services", surface: 500, vacant: false },
       { floor: 1, type: "Bureau", surface: 2000, vacant: false },
@@ -351,7 +330,6 @@ export const mockAssets: Asset[] = [
       { id: "c19", nature: "Assurance PNO", annualAmount: 22000, rebillable: false, comment: "" },
       { id: "c20", nature: "Gestion locative", annualAmount: 55000, rebillable: false, comment: "5% des loyers" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Entrepôt", surface: 11000, vacant: false },
       { floor: 1, type: "Bureaux annexes", surface: 1000, vacant: false },
@@ -382,7 +360,6 @@ export const mockAssets: Asset[] = [
       { id: "c22", nature: "Charges copropriété", annualAmount: 42000, rebillable: true, rebillablePercent: 80, comment: "" },
       { id: "c23", nature: "Assurance PNO", annualAmount: 15000, rebillable: false, comment: "" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Commerce", surface: 850, vacant: false },
     ],
@@ -412,7 +389,6 @@ export const mockAssets: Asset[] = [
       { id: "c25", nature: "Assurance PNO", annualAmount: 14000, rebillable: false, comment: "" },
       { id: "c26", nature: "Gestion locative", annualAmount: 29000, rebillable: false, comment: "5% des loyers" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Hall / Services", surface: 400, vacant: false },
       { floor: 1, type: "Bureau", surface: 1600, vacant: false },
@@ -447,7 +423,6 @@ export const mockAssets: Asset[] = [
       { id: "c29", nature: "ASL / Charges communes", annualAmount: 65000, rebillable: true, rebillablePercent: 100, comment: "" },
       { id: "c30", nature: "Gestion locative", annualAmount: 41000, rebillable: false, comment: "5% des loyers" },
     ],
-    credits: [],
     floors: [
       { floor: 0, type: "Commerce", surface: 5500, vacant: false },
     ],
