@@ -171,7 +171,7 @@ export const useUpdateAsset = () => {
       if (updates.riskScore !== undefined) dbUpdates.risk_score = updates.riskScore;
       if (updates.tenants !== undefined) dbUpdates.tenants = updates.tenants as unknown as Json;
       if (updates.charges !== undefined) dbUpdates.charges = updates.charges as unknown as Json;
-      if (updates.credits !== undefined) dbUpdates.credits = updates.credits as unknown as Json;
+      
       if (updates.floors !== undefined) dbUpdates.floors = updates.floors as unknown as Json;
 
       const { error } = await supabase.from("assets").update(dbUpdates).eq("id", id);
