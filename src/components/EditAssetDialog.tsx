@@ -82,7 +82,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
   const [floors, setFloors] = useState<FloorRow[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
-  const [credits, setCredits] = useState<Credit[]>([]);
+  
 
   useEffect(() => {
     if (open) {
