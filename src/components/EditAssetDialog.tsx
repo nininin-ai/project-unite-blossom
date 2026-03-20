@@ -158,7 +158,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
             <TabsTrigger value="floors" className="text-xs">Étages ({floors.length})</TabsTrigger>
             <TabsTrigger value="tenants" className="text-xs">Locataires ({tenants.length})</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Charges ({charges.length})</TabsTrigger>
-            <TabsTrigger value="credits" className="text-xs">Crédits ({credits.length})</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
             <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
           </TabsList>
 
