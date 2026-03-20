@@ -1,5 +1,6 @@
 import { useAssets } from "@/hooks/useAssets";
 import { Asset, mockAssets } from "@/data/mockData";
+import { getMarketRef } from "@/data/marketData";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -12,11 +13,10 @@ import {
   Zap,
   MapPin,
   Banknote,
-  CreditCard,
   ShieldAlert,
-  RefreshCw,
   DollarSign,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -28,17 +28,16 @@ interface AssetAnalysis {
   yieldDelta: number;
   vacancyRate: number;
   annualCharges: number;
-  annualCreditPayments: number;
   cashFlow: number;
   cashFlowYield: number;
   hasUnpaid: boolean;
   unpaidTotal: number;
   nearExpiry: number;
   tenantConcentration: number;
-  totalCRD: number;
-  hasCredit: boolean;
-  creditEndsSoon: boolean;
   healthScore: number;
+  marketRentPerSqm: number;
+  actualRentPerSqm: number;
+  marketRentGapPct: number;
   recommendations: { text: string; level: "critical" | "warning" | "info" }[];
   verdict: { label: string; className: string; phrase: string };
 }
@@ -47,30 +46,25 @@ function analyzeAsset(asset: Asset, portfolioAvgYield: number): AssetAnalysis {
   const yieldDelta = asset.yield - portfolioAvgYield;
   const vacancyRate = asset.totalSurface > 0 ? (asset.vacantSurface / asset.totalSurface) * 100 : 0;
 
-  // Charges
   const annualCharges = (asset.charges || []).reduce((s, c) => s + c.annualAmount, 0);
 
-  // Credits
-  const credits = asset.credits || [];
-  const annualCreditPayments = credits.reduce((s, c) => s + c.monthlyPayment * 12, 0);
-  const totalCRD = credits.reduce((s, c) => s + c.remainingCapital, 0);
-  const hasCredit = credits.length > 0;
-
-  const now = new Date();
-  const oneYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-  const creditEndsSoon = credits.some((c) => c.endDate && new Date(c.endDate) <= oneYear);
-
-  // Cash-flow
-  const cashFlow = asset.annualRent - annualCharges - annualCreditPayments;
+  const cashFlow = asset.annualRent - annualCharges;
   const cashFlowYield = asset.acquisitionPrice > 0 ? (cashFlow / asset.acquisitionPrice) * 100 : 0;
 
-  // Tenants
+  const now = new Date();
   const hasUnpaid = asset.tenants.some((t) => t.unpaid);
   const unpaidTotal = asset.tenants.reduce((s, t) => s + (t.unpaidAmount || 0), 0);
   const sixMonths = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
   const nearExpiry = asset.tenants.filter((t) => t.endDate && new Date(t.endDate) <= sixMonths).length;
   const maxTenantRent = Math.max(...asset.tenants.map((t) => t.currentRent), 0);
   const tenantConcentration = asset.annualRent > 0 ? (maxTenantRent / asset.annualRent) * 100 : 0;
+
+  // Market rental value
+  const marketRef = getMarketRef(asset.type, asset.city);
+  const marketRentPerSqm = marketRef.rentPerSqmMarket;
+  const occupiedSurface = asset.totalSurface - asset.vacantSurface;
+  const actualRentPerSqm = occupiedSurface > 0 ? asset.annualRent / occupiedSurface : 0;
+  const marketRentGapPct = marketRentPerSqm > 0 ? ((actualRentPerSqm - marketRentPerSqm) / marketRentPerSqm) * 100 : 0;
 
   // Health score
   let health = 100;
@@ -82,50 +76,45 @@ function analyzeAsset(asset: Asset, portfolioAvgYield: number): AssetAnalysis {
   if (unpaidTotal > asset.annualRent * 0.1) health -= 10;
   if (yieldDelta < -1) health -= 15;
   else if (yieldDelta < 0) health -= 5;
-  if (annualCreditPayments > asset.annualRent * 0.6) health -= 15;
   if (tenantConcentration > 50) health -= 10;
   if (nearExpiry > 0) health -= nearExpiry * 5;
+  if (Math.abs(marketRentGapPct) > 20) health -= 10;
   health = Math.max(0, Math.min(100, health));
 
-  // Recommendations
   const recommendations: AssetAnalysis["recommendations"] = [];
 
-  // 1 — Rendement faible
   if (yieldDelta < -1)
     recommendations.push({ text: `Rendement ${asset.yield.toFixed(1)}% très inférieur à la moyenne du parc (${portfolioAvgYield.toFixed(1)}%) — capital immobilisé sous-performant`, level: "critical" });
   else if (yieldDelta < 0)
     recommendations.push({ text: `Rendement ${asset.yield.toFixed(1)}% légèrement sous la moyenne du parc (${portfolioAvgYield.toFixed(1)}%)`, level: "warning" });
 
-  // 2 — Cash-flow
   if (cashFlow < 0)
     recommendations.push({ text: `Cash-flow négatif de ${fmt(cashFlow)}/an — déficit chronique, l'actif coûte plus qu'il ne rapporte`, level: "critical" });
   else if (cashFlowYield < 1)
     recommendations.push({ text: `Cash-flow net très faible (${cashFlowYield.toFixed(1)}%) — rentabilité réelle insuffisante`, level: "warning" });
 
-  // 3 — Impayés
   if (unpaidTotal > 0)
     recommendations.push({ text: `Impayés de ${fmt(unpaidTotal)} — risque contentieux, recouvrement à initier`, level: unpaidTotal > asset.annualRent * 0.1 ? "critical" : "warning" });
 
-  // 4 — Crédit
-  if (hasCredit && annualCreditPayments > asset.annualRent * 0.6)
-    recommendations.push({ text: `Charge de crédit (${fmt(annualCreditPayments)}/an) absorbe ${((annualCreditPayments / asset.annualRent) * 100).toFixed(0)}% des loyers — rentabilité détruite`, level: "critical" });
-  if (!hasCredit && asset.acquisitionPrice > 0)
-    recommendations.push({ text: `Aucun crédit — option de refinancement possible pour libérer du capital`, level: "info" });
-  if (creditEndsSoon)
-    recommendations.push({ text: `Crédit arrivant à échéance sous 12 mois — étudier refinancement ou remboursement`, level: "warning" });
+  // Market rental value insight
+  if (marketRentGapPct < -20)
+    recommendations.push({ text: `Loyer actuel (${actualRentPerSqm.toFixed(0)} €/m²) inférieur de ${Math.abs(marketRentGapPct).toFixed(0)}% à la valeur de marché (${marketRentPerSqm} €/m²) — potentiel de réversion à la hausse lors des renouvellements`, level: "info" });
+  else if (marketRentGapPct < -10)
+    recommendations.push({ text: `Loyer légèrement sous le marché (${actualRentPerSqm.toFixed(0)} vs ${marketRentPerSqm} €/m²) — marge de rattrapage possible`, level: "info" });
+  else if (marketRentGapPct > 20)
+    recommendations.push({ text: `Loyer actuel (${actualRentPerSqm.toFixed(0)} €/m²) supérieur de ${marketRentGapPct.toFixed(0)}% au marché (${marketRentPerSqm} €/m²) — risque de départ locataire ou de renégociation à la baisse`, level: "warning" });
+  else if (marketRentGapPct > 10)
+    recommendations.push({ text: `Loyer au-dessus du marché (${actualRentPerSqm.toFixed(0)} vs ${marketRentPerSqm} €/m²) — surveiller le risque de renégociation`, level: "info" });
 
-  // 5 — Revente
   if (health < 50 && asset.acquisitionPrice > 0)
     recommendations.push({ text: `Actif fragile — envisager la cession pour libérer ${fmt(asset.acquisitionPrice)} et réinvestir sur de meilleurs actifs`, level: "warning" });
 
-  // Vacance
   if (vacancyRate > 15)
     recommendations.push({ text: `Vacance critique (${vacancyRate.toFixed(0)}%) — plan de commercialisation urgent`, level: "critical" });
 
   if (recommendations.length === 0)
     recommendations.push({ text: "Actif sain — maintenir la stratégie en cours", level: "info" });
 
-  // Verdict
   let verdict: AssetAnalysis["verdict"];
   if (health < 40) verdict = { label: "Arbitrer", className: "badge-danger", phrase: "Cession recommandée — actif destructeur de valeur" };
   else if (health < 60) verdict = { label: "Surveiller", className: "badge-warning", phrase: "Vigilance — des actions correctives sont nécessaires" };
@@ -133,8 +122,9 @@ function analyzeAsset(asset: Asset, portfolioAvgYield: number): AssetAnalysis {
   else verdict = { label: "Conserver", className: "badge-success", phrase: "Actif performant — maintenir la stratégie" };
 
   return {
-    asset, yieldDelta, vacancyRate, annualCharges, annualCreditPayments, cashFlow, cashFlowYield,
-    hasUnpaid, unpaidTotal, nearExpiry, tenantConcentration, totalCRD, hasCredit, creditEndsSoon,
+    asset, yieldDelta, vacancyRate, annualCharges, cashFlow, cashFlowYield,
+    hasUnpaid, unpaidTotal, nearExpiry, tenantConcentration,
+    marketRentPerSqm, actualRentPerSqm, marketRentGapPct,
     healthScore: health, recommendations, verdict,
   };
 }
@@ -164,14 +154,11 @@ const Arbitrage = () => {
 
   const analyses = safeAssets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
 
-  
-
   const negativeCF = analyses.filter((a) => a.cashFlow < 0);
   const withUnpaid = analyses.filter((a) => a.unpaidTotal > 0);
   const atRisk = analyses.filter((a) => a.healthScore < 60);
   const avgHealth = Math.round(analyses.reduce((s, a) => s + a.healthScore, 0) / analyses.length);
 
-  // Check data completeness
   const missingTenants = safeAssets.filter((a) => !a.tenants || a.tenants.length === 0);
   const missingCharges = safeAssets.filter((a) => !a.charges || a.charges.length === 0);
 
@@ -180,7 +167,7 @@ const Arbitrage = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Arbitrage Stratégique</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Analyse du parc basée sur vos données — rendement, cash-flow, crédits et risques
+          Analyse du parc basée sur vos données — rendement, cash-flow, valeur locative et risques
         </p>
       </div>
 
@@ -256,7 +243,6 @@ const Arbitrage = () => {
             <motion.div key={a.asset.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
               <Card className="overflow-hidden">
                 <div className="flex flex-col lg:flex-row">
-                  {/* Left panel — Asset info */}
                   <div className="lg:w-72 p-5 border-b lg:border-b-0 lg:border-r border-border flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
@@ -301,9 +287,7 @@ const Arbitrage = () => {
                     </div>
                   </div>
 
-                  {/* Right panel — Analysis */}
                   <div className="flex-1 p-5 space-y-4">
-                    {/* Financial metrics */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       <div className="rounded-lg border border-border p-3">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
@@ -321,23 +305,23 @@ const Arbitrage = () => {
                       </div>
                       <div className="rounded-lg border border-border p-3">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                          <CreditCard className="h-3 w-3" /> Crédit
+                          <BarChart3 className="h-3 w-3" /> Loyer réel/m²
                         </p>
-                        <p className="text-sm font-bold text-foreground">
-                          {a.hasCredit ? `${fmt(a.annualCreditPayments)}/an` : "Aucun"}
-                        </p>
+                        <p className="text-sm font-bold text-foreground">{a.actualRentPerSqm.toFixed(0)} €/m²</p>
                       </div>
                       <div className="rounded-lg border border-border p-3">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                          <RefreshCw className="h-3 w-3" /> CRD
+                          <Target className="h-3 w-3" /> Marché/m²
                         </p>
-                        <p className="text-sm font-bold text-foreground">
-                          {a.hasCredit ? fmt(a.totalCRD) : "—"}
+                        <p className={`text-sm font-bold ${Math.abs(a.marketRentGapPct) > 15 ? "text-warning" : "text-foreground"}`}>
+                          {a.marketRentPerSqm} €/m²
+                          <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                            ({a.marketRentGapPct >= 0 ? "+" : ""}{a.marketRentGapPct.toFixed(0)}%)
+                          </span>
                         </p>
                       </div>
                     </div>
 
-                    {/* Recommendations */}
                     <div className="space-y-1.5">
                       {a.recommendations.map((r, ri) => (
                         <div key={ri} className="flex items-start gap-2 text-xs rounded-md px-2.5 py-2"
@@ -357,7 +341,6 @@ const Arbitrage = () => {
                       ))}
                     </div>
 
-                    {/* Verdict */}
                     <div className="flex items-center justify-between rounded-lg border border-border p-3">
                       <div className="flex items-center gap-3">
                         <span className={a.verdict.className}>{a.verdict.label}</span>
