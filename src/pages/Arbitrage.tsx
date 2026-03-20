@@ -164,7 +164,7 @@ const Arbitrage = () => {
 
   const analyses = safeAssets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
 
-  const analyses = assets.map((a) => analyzeAsset(a, portfolioAvgYield)).sort((a, b) => a.healthScore - b.healthScore);
+  
 
   const negativeCF = analyses.filter((a) => a.cashFlow < 0);
   const withUnpaid = analyses.filter((a) => a.unpaidTotal > 0);
