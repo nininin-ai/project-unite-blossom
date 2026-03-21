@@ -1,21 +1,39 @@
-export interface Tenant {
+// ── New hierarchical structure: Asset → Floor → Lot → Lease ──
+
+export interface Lease {
   id: string;
-  name: string;
+  tenantName: string;
+  tenantSiren?: string;
   startDate: string;
   endDate: string;
   triennialDate: string;
   leaseType: string;
   deposit: number;
   currentRent: number;
-  index: string;
-  indexRef: string;
+  index: string; // ILC | ILAT | ICC | Aucun
+  indexQuarter: string; // T1 | T2 | T3 | T4
+  indexYear: number;
   accompaniment: string;
   chargesManagement: string;
   unpaid: boolean;
   unpaidAmount?: number;
+  isVatApplicable: boolean;
+  vatRate?: number; // 5.5 | 10 | 20
+}
+
+export interface Lot {
+  id: string;
+  name: string;
   surface: number;
-  floor: number;
-  siren?: string;
+  type: string; // Bureau | Commerce | Entrepôt | Résidentiel | Logistique | Laboratoire | Services
+  lease?: Lease;
+}
+
+export interface Floor {
+  id: string;
+  name: string;
+  level: number;
+  lots: Lot[];
 }
 
 export interface Charge {
@@ -40,15 +58,359 @@ export interface Asset {
   acquisitionDate: string;
   constructionYear: number;
   isCopropriete: boolean;
-  lastWorks: string;
   annualRent: number;
   yield: number;
-  riskScore: number;
-  tenants: Tenant[];
   charges: Charge[];
-  
-  floors: { floor: number; type: string; surface: number; vacant: boolean }[];
+  floors: Floor[];
 }
+
+// ── Legacy compat type (kept for Tenant references in old code) ──
+export interface Tenant {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  triennialDate: string;
+  leaseType: string;
+  deposit: number;
+  currentRent: number;
+  index: string;
+  indexRef: string;
+  accompaniment: string;
+  chargesManagement: string;
+  unpaid: boolean;
+  unpaidAmount?: number;
+  surface: number;
+  floor: number;
+  siren?: string;
+}
+
+// ── Helpers ──
+
+export function getAssetLeases(asset: Asset): (Lease & { floorName: string; floorLevel: number; lotName: string; lotSurface: number; lotType: string })[] {
+  return (asset.floors ?? []).flatMap(f =>
+    f.lots.filter(l => l.lease).map(l => ({
+      ...l.lease!,
+      floorName: f.name,
+      floorLevel: f.level,
+      lotName: l.name,
+      lotSurface: l.surface,
+      lotType: l.type,
+    }))
+  );
+}
+
+export function getAssetTotalSurface(asset: Asset): number {
+  return (asset.floors ?? []).reduce((s, f) => s + f.lots.reduce((ls, l) => ls + l.surface, 0), 0);
+}
+
+export function getAssetVacantSurface(asset: Asset): number {
+  return (asset.floors ?? []).reduce((s, f) => s + f.lots.filter(l => !l.lease).reduce((ls, l) => ls + l.surface, 0), 0);
+}
+
+// Helper to convert lease indexQuarter+indexYear to a display string
+export function formatIndexRef(lease: Lease): string {
+  if (lease.index === "Aucun") return "–";
+  return `${lease.indexQuarter} ${lease.indexYear}`;
+}
+
+// ── Constants ──
+export const LEASE_TYPES = ["3/6/9", "6/9", "Dérogatoire", "Précaire", "Professionnel", "Bail civil"];
+export const INDEX_TYPES = ["ILC", "ILAT", "ICC", "Aucun"];
+export const INDEX_QUARTERS = ["T1", "T2", "T3", "T4"];
+export const LOT_TYPES = ["Bureau", "Commerce", "Entrepôt", "Résidentiel", "Logistique", "Laboratoire", "Services"];
+export const VAT_RATES = [5.5, 10, 20];
+
+// ── Mock data ──
+
+const mkLease = (p: Partial<Lease> & { tenantName: string; currentRent: number }): Lease => ({
+  id: crypto.randomUUID ? crypto.randomUUID() : `l-${Math.random().toString(36).slice(2, 8)}`,
+  startDate: "",
+  endDate: "",
+  triennialDate: "",
+  leaseType: "3/6/9",
+  deposit: 0,
+  index: "ILAT",
+  indexQuarter: "T3",
+  indexYear: 2024,
+  accompaniment: "",
+  chargesManagement: "Réel",
+  unpaid: false,
+  isVatApplicable: true,
+  vatRate: 20,
+  ...p,
+});
+
+export const mockAssets: Asset[] = [
+  {
+    id: "a1",
+    name: "Tour Montparnasse Office",
+    address: "33 Avenue du Maine",
+    city: "Paris 15e",
+    type: "Bureau",
+    totalSurface: 4200,
+    vacantSurface: 380,
+    acquisitionPrice: 18500000,
+    acquisitionDate: "2019-03-15",
+    constructionYear: 1973,
+    isCopropriete: true,
+    annualRent: 1260000,
+    yield: 6.8,
+    charges: [
+      { id: "c1", nature: "Taxe foncière", annualAmount: 125000, rebillable: false, comment: "Augmentation +5% prévue" },
+      { id: "c2", nature: "Charges copropriété", annualAmount: 210000, rebillable: true, rebillablePercent: 85, comment: "Inclut chauffage collectif" },
+      { id: "c3", nature: "Assurance PNO", annualAmount: 32000, rebillable: false, comment: "" },
+      { id: "c4", nature: "Gestion locative", annualAmount: 63000, rebillable: false, comment: "5% des loyers" },
+      { id: "c5", nature: "Entretien technique", annualAmount: 48000, rebillable: true, rebillablePercent: 100, comment: "Contrat multi-technique" },
+    ],
+    floors: [
+      { id: "f1-8", name: "Étage 8", level: 8, lots: [
+        { id: "lot-8a", name: "Lot 8A", surface: 420, type: "Bureau", lease: mkLease({ id: "t3", tenantName: "StartupFlow SAS", tenantSiren: "912345678", startDate: "2023-01-01", endDate: "2025-12-31", triennialDate: "2025-01-01", leaseType: "Dérogatoire", deposit: 22000, currentRent: 130000, index: "ILC", indexQuarter: "T2", indexYear: 2024, accompaniment: "Loyers progressifs", chargesManagement: "Forfaitaire", unpaid: true, unpaidAmount: 12500, isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f1-9", name: "Étage 9", level: 9, lots: [
+        { id: "lot-9a", name: "Lot 9A", surface: 380, type: "Bureau" },
+      ]},
+      { id: "f1-10", name: "Étage 10", level: 10, lots: [
+        { id: "lot-10a", name: "Lot 10A", surface: 1050, type: "Bureau", lease: mkLease({ id: "t2", tenantName: "Mercer France", tenantSiren: "390589455", startDate: "2021-06-01", endDate: "2027-05-31", triennialDate: "2024-06-01", deposit: 62000, currentRent: 310000, indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f1-11", name: "Étage 11", level: 11, lots: [
+        { id: "lot-11a", name: "Lot 11A", surface: 950, type: "Bureau", lease: mkLease({ id: "t4", tenantName: "LegalTech Corp", tenantSiren: "823456789", startDate: "2022-03-01", endDate: "2031-02-28", triennialDate: "2025-03-01", deposit: 75000, currentRent: 400000, indexQuarter: "T3", indexYear: 2024, accompaniment: "Travaux preneur 50k€", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f1-12", name: "Étage 12", level: 12, lots: [
+        { id: "lot-12a", name: "Lot 12A", surface: 1400, type: "Bureau", lease: mkLease({ id: "t1", tenantName: "Deloitte France", tenantSiren: "434209797", startDate: "2020-01-01", endDate: "2028-12-31", triennialDate: "2026-01-01", deposit: 85000, currentRent: 420000, indexQuarter: "T3", indexYear: 2024, accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+    ],
+  },
+  {
+    id: "a2",
+    name: "Carré Sénart Retail",
+    address: "12 Boulevard de l'Europe",
+    city: "Lieusaint 77",
+    type: "Commerce",
+    totalSurface: 2800,
+    vacantSurface: 600,
+    acquisitionPrice: 9200000,
+    acquisitionDate: "2021-07-20",
+    constructionYear: 2005,
+    isCopropriete: false,
+    annualRent: 620000,
+    yield: 6.7,
+    charges: [
+      { id: "c6", nature: "Taxe foncière", annualAmount: 72000, rebillable: false, comment: "" },
+      { id: "c7", nature: "Assurance PNO", annualAmount: 18000, rebillable: false, comment: "" },
+      { id: "c8", nature: "Entretien espaces verts", annualAmount: 15000, rebillable: true, rebillablePercent: 100, comment: "" },
+      { id: "c9", nature: "Gestion locative", annualAmount: 31000, rebillable: false, comment: "5% des loyers" },
+    ],
+    floors: [
+      { id: "f2-0", name: "RDC", level: 0, lots: [
+        { id: "lot-2a", name: "Commerce A", surface: 1200, type: "Commerce", lease: mkLease({ id: "t5", tenantName: "Boulanger", tenantSiren: "347384570", startDate: "2021-09-01", endDate: "2030-08-31", triennialDate: "2027-09-01", deposit: 45000, currentRent: 280000, index: "ILC", indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-2b", name: "Commerce B", surface: 600, type: "Commerce", lease: mkLease({ id: "t6", tenantName: "Pharmacie du Centre", tenantSiren: "451234567", startDate: "2022-01-01", endDate: "2031-12-31", triennialDate: "2025-01-01", deposit: 35000, currentRent: 180000, index: "ILC", indexQuarter: "T2", indexYear: 2024, accompaniment: "Franchise 2 mois", chargesManagement: "Forfaitaire", isVatApplicable: false }) },
+        { id: "lot-2c", name: "Commerce C", surface: 600, type: "Commerce" },
+      ]},
+      { id: "f2-1", name: "Étage 1", level: 1, lots: [
+        { id: "lot-2d", name: "Sport A", surface: 400, type: "Commerce", lease: mkLease({ id: "t7", tenantName: "Fitness Park", tenantSiren: "327126827", startDate: "2023-06-01", endDate: "2032-05-31", triennialDate: "2026-06-01", deposit: 25000, currentRent: 160000, index: "ILC", indexQuarter: "T3", indexYear: 2024, unpaid: true, unpaidAmount: 8200, isVatApplicable: true, vatRate: 20 }) },
+      ]},
+    ],
+  },
+  {
+    id: "a3",
+    name: "Résidence Les Jardins",
+    address: "8 Rue des Lilas",
+    city: "Lyon 6e",
+    type: "Résidentiel",
+    totalSurface: 1500,
+    vacantSurface: 250,
+    acquisitionPrice: 5800000,
+    acquisitionDate: "2020-11-10",
+    constructionYear: 1998,
+    isCopropriete: true,
+    annualRent: 348000,
+    yield: 6.0,
+    charges: [
+      { id: "c10", nature: "Taxe foncière", annualAmount: 38000, rebillable: false, comment: "" },
+      { id: "c11", nature: "Charges copropriété", annualAmount: 52000, rebillable: true, rebillablePercent: 70, comment: "" },
+      { id: "c12", nature: "Assurance PNO", annualAmount: 8500, rebillable: false, comment: "" },
+    ],
+    floors: [
+      { id: "f3-0", name: "RDC", level: 0, lots: [
+        { id: "lot-3a", name: "Local commercial", surface: 200, type: "Commerce" },
+      ]},
+      { id: "f3-1", name: "Étage 1", level: 1, lots: [
+        { id: "lot-3b", name: "Appt 1A", surface: 150, type: "Résidentiel", lease: mkLease({ tenantName: "Particulier - Petit", startDate: "2022-01-01", endDate: "2025-12-31", triennialDate: "2025-01-01", leaseType: "Bail civil", deposit: 2500, currentRent: 16000, index: "Aucun", indexQuarter: "T1", indexYear: 2024, chargesManagement: "Provisions", isVatApplicable: false }) },
+        { id: "lot-3c", name: "Appt 1B", surface: 150, type: "Résidentiel", lease: mkLease({ tenantName: "Particulier - Blanc", startDate: "2023-06-01", endDate: "2026-05-31", triennialDate: "2026-06-01", leaseType: "Bail civil", deposit: 2800, currentRent: 17000, index: "Aucun", indexQuarter: "T1", indexYear: 2024, chargesManagement: "Provisions", isVatApplicable: false }) },
+      ]},
+      { id: "f3-2", name: "Étage 2", level: 2, lots: [
+        { id: "lot-3d", name: "Appt 2A", surface: 75, type: "Résidentiel", lease: mkLease({ id: "t8", tenantName: "Particulier - Dupont", startDate: "2021-01-01", endDate: "2024-12-31", triennialDate: "2024-01-01", leaseType: "Bail civil", deposit: 3200, currentRent: 18000, index: "Aucun", indexQuarter: "T3", indexYear: 2024, chargesManagement: "Provisions", isVatApplicable: false }) },
+        { id: "lot-3e", name: "Appt 2B", surface: 275, type: "Résidentiel", lease: mkLease({ tenantName: "Particulier - Leroy", startDate: "2020-09-01", endDate: "2026-08-31", triennialDate: "2023-09-01", leaseType: "Bail civil", deposit: 4500, currentRent: 30000, index: "Aucun", indexQuarter: "T1", indexYear: 2024, chargesManagement: "Provisions", isVatApplicable: false }) },
+      ]},
+      { id: "f3-3", name: "Étage 3", level: 3, lots: [
+        { id: "lot-3f", name: "Appt 3A", surface: 95, type: "Résidentiel", lease: mkLease({ id: "t9", tenantName: "Particulier - Martin", startDate: "2022-06-01", endDate: "2025-05-31", triennialDate: "2025-06-01", leaseType: "Bail civil", deposit: 4100, currentRent: 24000, index: "Aucun", indexQuarter: "T3", indexYear: 2024, chargesManagement: "Provisions", unpaid: true, unpaidAmount: 3600, isVatApplicable: false }) },
+        { id: "lot-3g", name: "Appt 3B", surface: 255, type: "Résidentiel", lease: mkLease({ tenantName: "Particulier - Garcia", startDate: "2021-03-01", endDate: "2027-02-28", triennialDate: "2024-03-01", leaseType: "Bail civil", deposit: 5000, currentRent: 28000, index: "Aucun", indexQuarter: "T1", indexYear: 2024, chargesManagement: "Provisions", isVatApplicable: false }) },
+      ]},
+      { id: "f3-4", name: "Étage 4", level: 4, lots: [
+        { id: "lot-3h", name: "Appt 4A", surface: 300, type: "Résidentiel" },
+      ]},
+    ],
+  },
+  {
+    id: "a4",
+    name: "Campus Tech Sophia",
+    address: "2400 Route des Dolines",
+    city: "Sophia Antipolis 06",
+    type: "Bureau",
+    totalSurface: 6500,
+    vacantSurface: 1200,
+    acquisitionPrice: 22000000,
+    acquisitionDate: "2018-05-22",
+    constructionYear: 2010,
+    isCopropriete: false,
+    annualRent: 1750000,
+    yield: 7.9,
+    charges: [
+      { id: "c13", nature: "Taxe foncière", annualAmount: 165000, rebillable: false, comment: "" },
+      { id: "c14", nature: "Assurance PNO", annualAmount: 42000, rebillable: false, comment: "" },
+      { id: "c15", nature: "Entretien multi-technique", annualAmount: 95000, rebillable: true, rebillablePercent: 100, comment: "" },
+      { id: "c16", nature: "Gestion locative", annualAmount: 87500, rebillable: false, comment: "5% des loyers" },
+      { id: "c17", nature: "Sécurité / gardiennage", annualAmount: 56000, rebillable: true, rebillablePercent: 50, comment: "" },
+    ],
+    floors: [
+      { id: "f4-0", name: "RDC", level: 0, lots: [
+        { id: "lot-4a", name: "Accueil", surface: 500, type: "Services", lease: mkLease({ tenantName: "Services communs", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", deposit: 0, currentRent: 0, chargesManagement: "Forfaitaire", isVatApplicable: false }) },
+      ]},
+      { id: "f4-1", name: "Étage 1", level: 1, lots: [
+        { id: "lot-4b", name: "Plateau 1A", surface: 2000, type: "Bureau", lease: mkLease({ id: "t10", tenantName: "SAP France", tenantSiren: "379821994", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", deposit: 100000, currentRent: 600000, indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-4c", name: "Plateau 1B", surface: 2000, type: "Bureau", lease: mkLease({ tenantName: "SAP France", tenantSiren: "379821994", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", deposit: 100000, currentRent: 600000, indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f4-2", name: "Étage 2", level: 2, lots: [
+        { id: "lot-4d", name: "Plateau 2A", surface: 800, type: "Bureau", lease: mkLease({ id: "t11", tenantName: "DataViz SAS", tenantSiren: "534567890", startDate: "2023-03-01", endDate: "2026-02-28", triennialDate: "2026-03-01", leaseType: "Dérogatoire", deposit: 45000, currentRent: 280000, indexQuarter: "T2", indexYear: 2024, accompaniment: "Franchise 6 mois", chargesManagement: "Forfaitaire", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f4-3", name: "Étage 3", level: 3, lots: [
+        { id: "lot-4e", name: "Labo 3A", surface: 500, type: "Laboratoire", lease: mkLease({ id: "t12", tenantName: "BioTech Lab", tenantSiren: "645678901", startDate: "2022-09-01", endDate: "2025-08-31", triennialDate: "2025-09-01", deposit: 30000, currentRent: 270000, indexQuarter: "T3", indexYear: 2024, accompaniment: "Travaux bailleur 80k€", isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-4f", name: "Labo 3B", surface: 500, type: "Laboratoire" },
+      ]},
+      { id: "f4-4", name: "Étage 4", level: 4, lots: [
+        { id: "lot-4g", name: "Bureau 4A", surface: 700, type: "Bureau" },
+      ]},
+    ],
+  },
+  {
+    id: "a5",
+    name: "Entrepôt Logistique A4",
+    address: "ZAC du Parc des Sablons",
+    city: "Marne-la-Vallée 77",
+    type: "Logistique",
+    totalSurface: 12000,
+    vacantSurface: 0,
+    acquisitionPrice: 14200000,
+    acquisitionDate: "2020-02-10",
+    constructionYear: 2015,
+    isCopropriete: false,
+    annualRent: 1100000,
+    yield: 7.7,
+    charges: [
+      { id: "c18", nature: "Taxe foncière", annualAmount: 98000, rebillable: false, comment: "" },
+      { id: "c19", nature: "Assurance PNO", annualAmount: 22000, rebillable: false, comment: "" },
+      { id: "c20", nature: "Gestion locative", annualAmount: 55000, rebillable: false, comment: "5% des loyers" },
+    ],
+    floors: [
+      { id: "f5-0", name: "RDC", level: 0, lots: [
+        { id: "lot-5a", name: "Cellule A", surface: 8000, type: "Entrepôt", lease: mkLease({ id: "t13", tenantName: "Geodis Logistics", tenantSiren: "383474825", startDate: "2020-04-01", endDate: "2032-03-31", triennialDate: "2026-04-01", deposit: 180000, currentRent: 720000, indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-5b", name: "Cellule B", surface: 4000, type: "Entrepôt", lease: mkLease({ id: "t14", tenantName: "Amazon France Log", tenantSiren: "487482018", startDate: "2021-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "3/6/9", deposit: 95000, currentRent: 380000, indexQuarter: "T3", indexYear: 2024, chargesManagement: "Triple net", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+    ],
+  },
+  {
+    id: "a6",
+    name: "Galerie Rivoli",
+    address: "145 Rue de Rivoli",
+    city: "Paris 1er",
+    type: "Commerce",
+    totalSurface: 850,
+    vacantSurface: 0,
+    acquisitionPrice: 12500000,
+    acquisitionDate: "2017-09-01",
+    constructionYear: 1885,
+    isCopropriete: true,
+    annualRent: 780000,
+    yield: 6.2,
+    charges: [
+      { id: "c21", nature: "Taxe foncière", annualAmount: 95000, rebillable: false, comment: "" },
+      { id: "c22", nature: "Charges copropriété", annualAmount: 42000, rebillable: true, rebillablePercent: 80, comment: "" },
+      { id: "c23", nature: "Assurance PNO", annualAmount: 15000, rebillable: false, comment: "" },
+    ],
+    floors: [
+      { id: "f6-0", name: "RDC", level: 0, lots: [
+        { id: "lot-6a", name: "Boutique A", surface: 550, type: "Commerce", lease: mkLease({ id: "t15", tenantName: "Sephora", tenantSiren: "393712286", startDate: "2018-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", deposit: 130000, currentRent: 520000, index: "ILC", indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-6b", name: "Boutique B", surface: 300, type: "Commerce", lease: mkLease({ id: "t16", tenantName: "Maison Ladurée", tenantSiren: "775670284", startDate: "2019-06-01", endDate: "2028-05-31", triennialDate: "2025-06-01", deposit: 45000, currentRent: 260000, index: "ILC", indexQuarter: "T3", indexYear: 2024, chargesManagement: "Forfaitaire", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+    ],
+  },
+  {
+    id: "a7",
+    name: "Parc d'Activités Euromed",
+    address: "Boulevard de Dunkerque",
+    city: "Marseille 2e",
+    type: "Bureau",
+    totalSurface: 3200,
+    vacantSurface: 800,
+    acquisitionPrice: 8900000,
+    acquisitionDate: "2022-01-15",
+    constructionYear: 2018,
+    isCopropriete: false,
+    annualRent: 580000,
+    yield: 6.5,
+    charges: [
+      { id: "c24", nature: "Taxe foncière", annualAmount: 62000, rebillable: false, comment: "" },
+      { id: "c25", nature: "Assurance PNO", annualAmount: 14000, rebillable: false, comment: "" },
+      { id: "c26", nature: "Gestion locative", annualAmount: 29000, rebillable: false, comment: "5% des loyers" },
+    ],
+    floors: [
+      { id: "f7-0", name: "RDC", level: 0, lots: [
+        { id: "lot-7a", name: "Hall / Services", surface: 400, type: "Services" },
+      ]},
+      { id: "f7-1", name: "Étage 1", level: 1, lots: [
+        { id: "lot-7b", name: "Plateau 1", surface: 1600, type: "Bureau", lease: mkLease({ id: "t17", tenantName: "CMA CGM Services", tenantSiren: "562024422", startDate: "2022-04-01", endDate: "2031-03-31", triennialDate: "2025-04-01", deposit: 70000, currentRent: 380000, indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f7-2", name: "Étage 2", level: 2, lots: [
+        { id: "lot-7c", name: "Plateau 2", surface: 800, type: "Bureau", lease: mkLease({ id: "t18", tenantName: "Startup Medtech", tenantSiren: "923456781", startDate: "2023-09-01", endDate: "2026-08-31", triennialDate: "2026-09-01", leaseType: "Dérogatoire", deposit: 15000, currentRent: 200000, indexQuarter: "T2", indexYear: 2024, accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", isVatApplicable: true, vatRate: 20 }) },
+      ]},
+      { id: "f7-3", name: "Étage 3", level: 3, lots: [
+        { id: "lot-7d", name: "Bureau 3A", surface: 400, type: "Bureau" },
+      ]},
+    ],
+  },
+  {
+    id: "a8",
+    name: "Retail Park Mérignac",
+    address: "Avenue de la Somme",
+    city: "Mérignac 33",
+    type: "Commerce",
+    totalSurface: 5500,
+    vacantSurface: 950,
+    acquisitionPrice: 11000000,
+    acquisitionDate: "2019-11-20",
+    constructionYear: 2008,
+    isCopropriete: false,
+    annualRent: 820000,
+    yield: 7.4,
+    charges: [
+      { id: "c27", nature: "Taxe foncière", annualAmount: 88000, rebillable: false, comment: "" },
+      { id: "c28", nature: "Assurance PNO", annualAmount: 20000, rebillable: false, comment: "" },
+      { id: "c29", nature: "ASL / Charges communes", annualAmount: 65000, rebillable: true, rebillablePercent: 100, comment: "" },
+      { id: "c30", nature: "Gestion locative", annualAmount: 41000, rebillable: false, comment: "5% des loyers" },
+    ],
+    floors: [
+      { id: "f8-0", name: "RDC", level: 0, lots: [
+        { id: "lot-8a2", name: "Cellule A", surface: 2500, type: "Commerce", lease: mkLease({ id: "t19", tenantName: "Decathlon", tenantSiren: "306138900", startDate: "2020-01-01", endDate: "2029-12-31", triennialDate: "2026-01-01", deposit: 75000, currentRent: 420000, index: "ILC", indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-8b2", name: "Cellule B", surface: 1200, type: "Commerce", lease: mkLease({ id: "t20", tenantName: "Cultura", tenantSiren: "410383626", startDate: "2021-03-01", endDate: "2030-02-28", triennialDate: "2027-03-01", deposit: 40000, currentRent: 250000, index: "ILC", indexQuarter: "T3", indexYear: 2024, isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-8c2", name: "Cellule C", surface: 850, type: "Commerce", lease: mkLease({ id: "t21", tenantName: "Action", tenantSiren: "521809498", startDate: "2023-01-01", endDate: "2032-12-31", triennialDate: "2026-01-01", deposit: 20000, currentRent: 150000, index: "ILC", indexQuarter: "T2", indexYear: 2024, accompaniment: "Franchise 1 mois", chargesManagement: "Forfaitaire", isVatApplicable: true, vatRate: 20 }) },
+        { id: "lot-8d2", name: "Cellule D", surface: 950, type: "Commerce" },
+      ]},
+    ],
+  },
+];
+
+// ── Deal types (unchanged) ──
 
 export interface BrokerContact {
   name: string;
@@ -166,269 +528,6 @@ export interface NewOpportunity {
   globalSummary: string;
 }
 
-export const mockAssets: Asset[] = [
-  {
-    id: "a1",
-    name: "Tour Montparnasse Office",
-    address: "33 Avenue du Maine",
-    city: "Paris 15e",
-    type: "Bureau",
-    totalSurface: 4200,
-    vacantSurface: 380,
-    acquisitionPrice: 18500000,
-    acquisitionDate: "2019-03-15",
-    constructionYear: 1973,
-    isCopropriete: true,
-    lastWorks: "Rénovation façade 2022",
-    annualRent: 1260000,
-    yield: 6.8,
-    riskScore: 72,
-    tenants: [
-      { id: "t1", name: "Deloitte France", startDate: "2020-01-01", endDate: "2028-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 85000, currentRent: 420000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 1400, floor: 12, siren: "434209797" },
-      { id: "t2", name: "Mercer France", startDate: "2021-06-01", endDate: "2027-05-31", triennialDate: "2024-06-01", leaseType: "3/6/9", deposit: 62000, currentRent: 310000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1050, floor: 10, siren: "390589455" },
-      { id: "t3", name: "StartupFlow SAS", startDate: "2023-01-01", endDate: "2025-12-31", triennialDate: "2025-01-01", leaseType: "Dérogatoire", deposit: 22000, currentRent: 130000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Loyers progressifs", chargesManagement: "Forfaitaire", unpaid: true, unpaidAmount: 12500, surface: 420, floor: 8, siren: "912345678" },
-      { id: "t4", name: "LegalTech Corp", startDate: "2022-03-01", endDate: "2031-02-28", triennialDate: "2025-03-01", leaseType: "3/6/9", deposit: 75000, currentRent: 400000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Travaux preneur 50k€", chargesManagement: "Réel", unpaid: false, surface: 950, floor: 11, siren: "823456789" },
-    ],
-    charges: [
-      { id: "c1", nature: "Taxe foncière", annualAmount: 125000, rebillable: false, comment: "Augmentation +5% prévue" },
-      { id: "c2", nature: "Charges copropriété", annualAmount: 210000, rebillable: true, rebillablePercent: 85, comment: "Inclut chauffage collectif" },
-      { id: "c3", nature: "Assurance PNO", annualAmount: 32000, rebillable: false, comment: "" },
-      { id: "c4", nature: "Gestion locative", annualAmount: 63000, rebillable: false, comment: "5% des loyers" },
-      { id: "c5", nature: "Entretien technique", annualAmount: 48000, rebillable: true, rebillablePercent: 100, comment: "Contrat multi-technique" },
-    ],
-    floors: [
-      { floor: 8, type: "Bureau", surface: 420, vacant: false },
-      { floor: 9, type: "Bureau", surface: 380, vacant: true },
-      { floor: 10, type: "Bureau", surface: 1050, vacant: false },
-      { floor: 11, type: "Bureau", surface: 950, vacant: false },
-      { floor: 12, type: "Bureau", surface: 1400, vacant: false },
-    ],
-  },
-  {
-    id: "a2",
-    name: "Carré Sénart Retail",
-    address: "12 Boulevard de l'Europe",
-    city: "Lieusaint 77",
-    type: "Commerce",
-    totalSurface: 2800,
-    vacantSurface: 600,
-    acquisitionPrice: 9200000,
-    acquisitionDate: "2021-07-20",
-    constructionYear: 2005,
-    isCopropriete: false,
-    lastWorks: "Ravalement 2023",
-    annualRent: 620000,
-    yield: 6.7,
-    riskScore: 58,
-    tenants: [
-      { id: "t5", name: "Boulanger", startDate: "2021-09-01", endDate: "2030-08-31", triennialDate: "2027-09-01", leaseType: "3/6/9", deposit: 45000, currentRent: 280000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0, siren: "347384570" },
-      { id: "t6", name: "Pharmacie du Centre", startDate: "2022-01-01", endDate: "2031-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 35000, currentRent: 180000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 2 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 600, floor: 0, siren: "451234567" },
-      { id: "t7", name: "Fitness Park", startDate: "2023-06-01", endDate: "2032-05-31", triennialDate: "2026-06-01", leaseType: "3/6/9", deposit: 25000, currentRent: 160000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: true, unpaidAmount: 8200, surface: 400, floor: 1, siren: "327126827" },
-    ],
-    charges: [
-      { id: "c6", nature: "Taxe foncière", annualAmount: 72000, rebillable: false, comment: "" },
-      { id: "c7", nature: "Assurance PNO", annualAmount: 18000, rebillable: false, comment: "" },
-      { id: "c8", nature: "Entretien espaces verts", annualAmount: 15000, rebillable: true, rebillablePercent: 100, comment: "" },
-      { id: "c9", nature: "Gestion locative", annualAmount: 31000, rebillable: false, comment: "5% des loyers" },
-    ],
-    floors: [
-      { floor: 0, type: "Commerce", surface: 1800, vacant: false },
-      { floor: 1, type: "Commerce/Sport", surface: 1000, vacant: false },
-    ],
-  },
-  {
-    id: "a3",
-    name: "Résidence Les Jardins",
-    address: "8 Rue des Lilas",
-    city: "Lyon 6e",
-    type: "Résidentiel",
-    totalSurface: 1500,
-    vacantSurface: 250,
-    acquisitionPrice: 5800000,
-    acquisitionDate: "2020-11-10",
-    constructionYear: 1998,
-    isCopropriete: true,
-    lastWorks: "Isolation thermique 2021",
-    annualRent: 348000,
-    yield: 6.0,
-    riskScore: 45,
-    tenants: [
-      { id: "t8", name: "Particulier - Dupont", startDate: "2021-01-01", endDate: "2024-12-31", triennialDate: "2024-01-01", leaseType: "Habitation", deposit: 3200, currentRent: 18000, index: "IRL", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Provisions", unpaid: false, surface: 75, floor: 2 },
-      { id: "t9", name: "Particulier - Martin", startDate: "2022-06-01", endDate: "2025-05-31", triennialDate: "2025-06-01", leaseType: "Habitation", deposit: 4100, currentRent: 24000, index: "IRL", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Provisions", unpaid: true, unpaidAmount: 3600, surface: 95, floor: 3 },
-    ],
-    charges: [
-      { id: "c10", nature: "Taxe foncière", annualAmount: 38000, rebillable: false, comment: "" },
-      { id: "c11", nature: "Charges copropriété", annualAmount: 52000, rebillable: true, rebillablePercent: 70, comment: "" },
-      { id: "c12", nature: "Assurance PNO", annualAmount: 8500, rebillable: false, comment: "" },
-    ],
-    floors: [
-      { floor: 0, type: "Commerce", surface: 200, vacant: true },
-      { floor: 1, type: "Résidentiel", surface: 300, vacant: false },
-      { floor: 2, type: "Résidentiel", surface: 350, vacant: false },
-      { floor: 3, type: "Résidentiel", surface: 350, vacant: false },
-      { floor: 4, type: "Résidentiel", surface: 300, vacant: true },
-    ],
-  },
-  {
-    id: "a4",
-    name: "Campus Tech Sophia",
-    address: "2400 Route des Dolines",
-    city: "Sophia Antipolis 06",
-    type: "Bureau",
-    totalSurface: 6500,
-    vacantSurface: 1200,
-    acquisitionPrice: 22000000,
-    acquisitionDate: "2018-05-22",
-    constructionYear: 2010,
-    isCopropriete: false,
-    lastWorks: "Aucun récent",
-    annualRent: 1750000,
-    yield: 7.9,
-    riskScore: 82,
-    tenants: [
-      { id: "t10", name: "SAP France", startDate: "2019-01-01", endDate: "2028-12-31", triennialDate: "2025-01-01", leaseType: "3/6/9", deposit: 200000, currentRent: 1200000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 4000, floor: 1, siren: "379821994" },
-      { id: "t11", name: "DataViz SAS", startDate: "2023-03-01", endDate: "2026-02-28", triennialDate: "2026-03-01", leaseType: "Dérogatoire", deposit: 45000, currentRent: 280000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 6 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2, siren: "534567890" },
-      { id: "t12", name: "BioTech Lab", startDate: "2022-09-01", endDate: "2025-08-31", triennialDate: "2025-09-01", leaseType: "3/6/9", deposit: 30000, currentRent: 270000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Travaux bailleur 80k€", chargesManagement: "Réel", unpaid: false, surface: 500, floor: 3, siren: "645678901" },
-    ],
-    charges: [
-      { id: "c13", nature: "Taxe foncière", annualAmount: 165000, rebillable: false, comment: "" },
-      { id: "c14", nature: "Assurance PNO", annualAmount: 42000, rebillable: false, comment: "" },
-      { id: "c15", nature: "Entretien multi-technique", annualAmount: 95000, rebillable: true, rebillablePercent: 100, comment: "" },
-      { id: "c16", nature: "Gestion locative", annualAmount: 87500, rebillable: false, comment: "5% des loyers" },
-      { id: "c17", nature: "Sécurité / gardiennage", annualAmount: 56000, rebillable: true, rebillablePercent: 50, comment: "" },
-    ],
-    floors: [
-      { floor: 0, type: "Accueil / Services", surface: 500, vacant: false },
-      { floor: 1, type: "Bureau", surface: 2000, vacant: false },
-      { floor: 2, type: "Bureau", surface: 2000, vacant: false },
-      { floor: 3, type: "Laboratoire", surface: 1000, vacant: false },
-      { floor: 4, type: "Bureau", surface: 1000, vacant: true },
-    ],
-  },
-  {
-    id: "a5",
-    name: "Entrepôt Logistique A4",
-    address: "ZAC du Parc des Sablons",
-    city: "Marne-la-Vallée 77",
-    type: "Logistique",
-    totalSurface: 12000,
-    vacantSurface: 0,
-    acquisitionPrice: 14200000,
-    acquisitionDate: "2020-02-10",
-    constructionYear: 2015,
-    isCopropriete: false,
-    lastWorks: "Mise aux normes ICPE 2023",
-    annualRent: 1100000,
-    yield: 7.7,
-    riskScore: 35,
-    tenants: [
-      { id: "t13", name: "Geodis Logistics", startDate: "2020-04-01", endDate: "2032-03-31", triennialDate: "2026-04-01", leaseType: "3/6/9", deposit: 180000, currentRent: 720000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 8000, floor: 0, siren: "383474825" },
-      { id: "t14", name: "Amazon France Log", startDate: "2021-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "Ferme 9 ans", deposit: 95000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Triple net", unpaid: false, surface: 4000, floor: 0, siren: "487482018" },
-    ],
-    charges: [
-      { id: "c18", nature: "Taxe foncière", annualAmount: 98000, rebillable: false, comment: "" },
-      { id: "c19", nature: "Assurance PNO", annualAmount: 22000, rebillable: false, comment: "" },
-      { id: "c20", nature: "Gestion locative", annualAmount: 55000, rebillable: false, comment: "5% des loyers" },
-    ],
-    floors: [
-      { floor: 0, type: "Entrepôt", surface: 11000, vacant: false },
-      { floor: 1, type: "Bureaux annexes", surface: 1000, vacant: false },
-    ],
-  },
-  {
-    id: "a6",
-    name: "Galerie Rivoli",
-    address: "145 Rue de Rivoli",
-    city: "Paris 1er",
-    type: "Commerce",
-    totalSurface: 850,
-    vacantSurface: 0,
-    acquisitionPrice: 12500000,
-    acquisitionDate: "2017-09-01",
-    constructionYear: 1885,
-    isCopropriete: true,
-    lastWorks: "Rénovation intérieure 2022",
-    annualRent: 780000,
-    yield: 6.2,
-    riskScore: 28,
-    tenants: [
-      { id: "t15", name: "Sephora", startDate: "2018-01-01", endDate: "2030-12-31", triennialDate: "2027-01-01", leaseType: "3/6/9", deposit: 130000, currentRent: 520000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 550, floor: 0, siren: "393712286" },
-      { id: "t16", name: "Maison Ladurée", startDate: "2019-06-01", endDate: "2028-05-31", triennialDate: "2025-06-01", leaseType: "3/6/9", deposit: 45000, currentRent: 260000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Forfaitaire", unpaid: false, surface: 300, floor: 0, siren: "775670284" },
-    ],
-    charges: [
-      { id: "c21", nature: "Taxe foncière", annualAmount: 95000, rebillable: false, comment: "" },
-      { id: "c22", nature: "Charges copropriété", annualAmount: 42000, rebillable: true, rebillablePercent: 80, comment: "" },
-      { id: "c23", nature: "Assurance PNO", annualAmount: 15000, rebillable: false, comment: "" },
-    ],
-    floors: [
-      { floor: 0, type: "Commerce", surface: 850, vacant: false },
-    ],
-  },
-  {
-    id: "a7",
-    name: "Parc d'Activités Euromed",
-    address: "Boulevard de Dunkerque",
-    city: "Marseille 2e",
-    type: "Bureau",
-    totalSurface: 3200,
-    vacantSurface: 800,
-    acquisitionPrice: 8900000,
-    acquisitionDate: "2022-01-15",
-    constructionYear: 2018,
-    isCopropriete: false,
-    lastWorks: "Aucun",
-    annualRent: 580000,
-    yield: 6.5,
-    riskScore: 65,
-    tenants: [
-      { id: "t17", name: "CMA CGM Services", startDate: "2022-04-01", endDate: "2031-03-31", triennialDate: "2025-04-01", leaseType: "3/6/9", deposit: 70000, currentRent: 380000, index: "ILAT", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1600, floor: 1, siren: "562024422" },
-      { id: "t18", name: "Startup Medtech", startDate: "2023-09-01", endDate: "2026-08-31", triennialDate: "2026-09-01", leaseType: "Dérogatoire", deposit: 15000, currentRent: 200000, index: "ILAT", indexRef: "Q2 2024", accompaniment: "Franchise 3 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 800, floor: 2, siren: "923456781" },
-    ],
-    charges: [
-      { id: "c24", nature: "Taxe foncière", annualAmount: 62000, rebillable: false, comment: "" },
-      { id: "c25", nature: "Assurance PNO", annualAmount: 14000, rebillable: false, comment: "" },
-      { id: "c26", nature: "Gestion locative", annualAmount: 29000, rebillable: false, comment: "5% des loyers" },
-    ],
-    floors: [
-      { floor: 0, type: "Hall / Services", surface: 400, vacant: false },
-      { floor: 1, type: "Bureau", surface: 1600, vacant: false },
-      { floor: 2, type: "Bureau", surface: 800, vacant: false },
-      { floor: 3, type: "Bureau", surface: 400, vacant: true },
-    ],
-  },
-  {
-    id: "a8",
-    name: "Retail Park Mérignac",
-    address: "Avenue de la Somme",
-    city: "Mérignac 33",
-    type: "Commerce",
-    totalSurface: 5500,
-    vacantSurface: 950,
-    acquisitionPrice: 11000000,
-    acquisitionDate: "2019-11-20",
-    constructionYear: 2008,
-    isCopropriete: false,
-    lastWorks: "Parking réfection 2023",
-    annualRent: 820000,
-    yield: 7.4,
-    riskScore: 55,
-    tenants: [
-      { id: "t19", name: "Decathlon", startDate: "2020-01-01", endDate: "2029-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 75000, currentRent: 420000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 2500, floor: 0, siren: "306138900" },
-      { id: "t20", name: "Cultura", startDate: "2021-03-01", endDate: "2030-02-28", triennialDate: "2027-03-01", leaseType: "3/6/9", deposit: 40000, currentRent: 250000, index: "ILC", indexRef: "Q3 2024", accompaniment: "Aucune", chargesManagement: "Réel", unpaid: false, surface: 1200, floor: 0, siren: "410383626" },
-      { id: "t21", name: "Action", startDate: "2023-01-01", endDate: "2032-12-31", triennialDate: "2026-01-01", leaseType: "3/6/9", deposit: 20000, currentRent: 150000, index: "ILC", indexRef: "Q2 2024", accompaniment: "Franchise 1 mois", chargesManagement: "Forfaitaire", unpaid: false, surface: 850, floor: 0, siren: "521809498" },
-    ],
-    charges: [
-      { id: "c27", nature: "Taxe foncière", annualAmount: 88000, rebillable: false, comment: "" },
-      { id: "c28", nature: "Assurance PNO", annualAmount: 20000, rebillable: false, comment: "" },
-      { id: "c29", nature: "ASL / Charges communes", annualAmount: 65000, rebillable: true, rebillablePercent: 100, comment: "" },
-      { id: "c30", nature: "Gestion locative", annualAmount: 41000, rebillable: false, comment: "5% des loyers" },
-    ],
-    floors: [
-      { floor: 0, type: "Commerce", surface: 5500, vacant: false },
-    ],
-  },
-];
-
 export const mockDeals: Deal[] = [
   { id: "d1", code: "EQ-2024-001", opportunity: "Immeuble Haussmann Opéra", stage: "Due Diligence", status: "Éligible", dealStatus: "En analyse", triEstimated: 8.2, yield: 6.8, priority: "Élevée", responsible: "A. Durand", estimatedDate: "2024-06-15", score: 85, amount: 14500000, keyStrengths: "Emplacement prime, loyers sécurisés", daysInPipeline: 45, assetType: "Bureau", city: "Paris 9e", address: "25 Boulevard Haussmann", surface: 3200, broker: "BNP Paribas RE", brokerContact: { name: "Jean Dupont", company: "BNP Paribas RE", email: "j.dupont@bnpre.fr", phone: "+33 1 42 56 78 90" }, receptionDate: "2026-03-03", annualRent: 986000, rentPerSqm: 308, occupiedSurface: 2800, capRate: 0.06, acquisitionFees: 1087500, holdingPeriod: 10 },
   { id: "d2", code: "EQ-2024-002", opportunity: "Entrepôt logistique A86", stage: "Pré-analyse", status: "En analyse", dealStatus: "Nouveau deal", triEstimated: 9.5, yield: 7.7, priority: "Moyenne", responsible: "M. Lefèvre", estimatedDate: "2024-08-01", score: 68, amount: 8200000, daysInPipeline: 22, assetType: "Logistique", city: "Créteil 94", address: "ZAC Europarc", surface: 9500, broker: "CBRE", brokerContact: { name: "Marie Leroy", company: "CBRE", email: "m.leroy@cbre.fr", phone: "+33 1 53 64 22 10" }, receptionDate: "2026-03-02", annualRent: 631400, rentPerSqm: 66, occupiedSurface: 9500, capRate: 0.075, acquisitionFees: 574000, holdingPeriod: 8 },
@@ -490,88 +589,13 @@ export const mockNewOpportunities: NewOpportunity[] = [
       { name: "Centrakor", startDate: "2021-01-01", endDate: "2027-12-31", leaseType: "3/6/9", annualRent: 130000, indexation: "ILC", walt: 3.8, walb: 2.5 },
       { name: "La Halle", startDate: "2022-06-01", endDate: "2028-05-31", leaseType: "3/6/9", annualRent: 100000, indexation: "ILC", walt: 4.2, walb: 1.8 },
     ],
-    investment: { acquisitionPrice: 5900000, estimatedFees: 413000, totalInvested: 6313000, capexHistory: [{ year: "2023", amount: 95000, description: "Réfection parking" }], capexProjection: [{ year: "2025", amount: 250000, description: "Ravalement façade" }] },
-    triDetail: { investmentSummary: 6313000, capexHistorique: 95000, capexProjection: 250000, projectedRents: 4380000, netCashflow: 3835000, exitValueHypothesis: 5200000 },
-    aiSummary: "Retail park de périphérie en zone secondaire avec une vacance de 22%. Mix enseignes moyen avec forte dépendance à Kiabi. TRI de 5.8% insuffisant au regard du risque.",
-    strengths: ["Prix au m² attractif", "Parking 180 places"],
-    weaknesses: ["Vacance de 22%", "WALB très court", "Zone en déclin", "TRI insuffisant vs risque"],
-    analysisDecision: "Non éligible. Profil risque/rendement défavorable.", analysisDecisionStatus: "Négatif",
-    portfolioImpact: "Négatif", portfolioReasons: ["Augmenterait la vacance moyenne", "Rendement insuffisant"],
-    globalSummary: "Rejet recommandé.",
-  },
-  {
-    id: "no4", code: "NOP-2024-004", name: "Pied d'immeuble Faubourg Saint-Honoré", assetType: "Commerce", city: "Paris 8e", address: "78 Rue du Faubourg Saint-Honoré", surface: 320, askingPrice: 8500000, currentRent: 480000, yieldRate: 5.6, triEstimated: 5.6, score: 72, status: "Nouveau", source: "Knight Frank", receptionDate: "2024-04-28",
-    keyFacts: { constructionYear: 1920, occupancyRate: 100, walt: 6.8, walb: 3.8, mainTenant: "Maison de luxe (confidentiel)", indexation: "ILC" },
-    tenants: [
-      { name: "Maison de luxe (confidentiel)", startDate: "2019-01-01", endDate: "2031-12-31", leaseType: "3/6/9", annualRent: 480000, indexation: "ILC", walt: 6.8, walb: 3.8 },
-    ],
-    investment: { acquisitionPrice: 8500000, estimatedFees: 595000, totalInvested: 9095000, capexHistory: [], capexProjection: [{ year: "2028", amount: 120000, description: "Ravalement façade" }] },
-    triDetail: { investmentSummary: 9095000, capexHistorique: 0, capexProjection: 120000, projectedRents: 5000000, netCashflow: 4880000, exitValueHypothesis: 9500000 },
-    aiSummary: "Murs de boutique de luxe sur l'un des axes les plus prisés de Paris. Locataire solide avec bail ferme résiduel. TRI de 5.6% compensé par le caractère patrimonial.",
-    strengths: ["Emplacement trophy", "Locataire luxe solide", "Bail ferme 3.8 ans", "Actif patrimonial"],
-    weaknesses: ["TRI modeste", "Prix unitaire élevé", "Surface limitée"],
-    analysisDecision: "Intéressant pour stratégie patrimoniale.", analysisDecisionStatus: "Positif",
-    portfolioImpact: "Positif", portfolioReasons: ["Actif trophy", "Revenus sécurisés long terme"],
-    globalSummary: "Éligible pour les stratégies patrimoniales / core.",
-  },
-  {
-    id: "no5", code: "NOP-2024-005", name: "Programme neuf résidentiel Villeurbanne", assetType: "Résidentiel", city: "Villeurbanne 69", address: "42 Cours Emile Zola", surface: 3800, askingPrice: 9200000, currentRent: 0, yieldRate: 4.5, triEstimated: 5.2, score: 45, status: "En analyse", source: "Savills", receptionDate: "2024-06-01",
-    keyFacts: { constructionYear: 2025, occupancyRate: 0, walt: 0, walb: 0, mainTenant: "Aucun (VEFA)", indexation: "IRL" },
-    tenants: [],
-    investment: { acquisitionPrice: 9200000, estimatedFees: 644000, totalInvested: 9844000, capexHistory: [], capexProjection: [] },
-    triDetail: { investmentSummary: 9844000, capexHistorique: 0, capexProjection: 0, projectedRents: 5520000, netCashflow: 5520000, exitValueHypothesis: 9800000 },
-    aiSummary: "Programme VEFA résidentiel de 48 logements. Pas de pré-commercialisation locative. TRI estimé à 5.2% sur hypothèses de marché. Risque de développement.",
-    strengths: ["Forte demande locative", "Neuf – faible maintenance", "Dispositif fiscal potentiel"],
-    weaknesses: ["Aucun revenu actuel", "TRI hypothétique", "Risque planning", "Rendement structurellement bas"],
-    analysisDecision: "Non prioritaire. Risque de développement significatif.", analysisDecisionStatus: "Neutre",
-    portfolioImpact: "Négatif", portfolioReasons: ["Aucun revenu immédiat", "TRI sous cible fonds"],
-    globalSummary: "Mise en veille – revoir à la livraison.",
-  },
-  {
-    id: "no6", code: "NOP-2024-006", name: "Centre de données Tier III Pantin", assetType: "Logistique", city: "Pantin 93", address: "12 Avenue Edouard Vaillant", surface: 4200, askingPrice: 28000000, currentRent: 2400000, yieldRate: 8.6, triEstimated: 9.8, score: 82, status: "Nouveau", source: "JLL", receptionDate: "2024-05-10",
-    keyFacts: { constructionYear: 2021, occupancyRate: 95, walt: 8.2, walb: 5.2, mainTenant: "Equinix", indexation: "ILAT" },
-    tenants: [
-      { name: "Equinix", startDate: "2021-06-01", endDate: "2033-05-31", leaseType: "Ferme 12 ans", annualRent: 2100000, indexation: "ILAT", walt: 8.2, walb: 5.2 },
-      { name: "OVHcloud", startDate: "2022-01-01", endDate: "2028-12-31", leaseType: "3/6/9", annualRent: 300000, indexation: "ILAT", walt: 4.8, walb: 3.2 },
-    ],
-    investment: { acquisitionPrice: 28000000, estimatedFees: 1960000, totalInvested: 29960000, capexHistory: [], capexProjection: [{ year: "2028", amount: 800000, description: "Upgrade infrastructure électrique" }] },
-    triDetail: { investmentSummary: 29960000, capexHistorique: 0, capexProjection: 800000, projectedRents: 25000000, netCashflow: 24200000, exitValueHypothesis: 31000000 },
-    aiSummary: "Data center Tier III avec Equinix comme locataire principal. TRI exceptionnel de 9.8% avec WALT de 8.2 ans. Actif rare et stratégique.",
-    strengths: ["TRI exceptionnel", "Locataire Equinix", "WALT longue", "Croissance structurelle"],
-    weaknesses: ["Ticket élevé (28 M€)", "Risque obsolescence techno", "Coûts énergétiques volatils"],
-    analysisDecision: "Opportunité prioritaire.", analysisDecisionStatus: "Positif",
-    portfolioImpact: "Positif", portfolioReasons: ["Diversification sectorielle", "Améliore le TRI", "Revenus long terme"],
-    globalSummary: "Intégration immédiate recommandée.",
-  },
-  {
-    id: "no7", code: "NOP-2024-007", name: "Bureaux flexibles Gare de Lyon", assetType: "Bureau", city: "Paris 12e", address: "3 Place Henri Frenay", surface: 1800, askingPrice: 7400000, currentRent: 520000, yieldRate: 7.0, triEstimated: 7.0, score: 65, status: "En analyse", source: "Colliers", receptionDate: "2024-05-25",
-    keyFacts: { constructionYear: 2016, occupancyRate: 88, walt: 3.5, walb: 2.0, mainTenant: "WeWork", indexation: "ILAT" },
-    tenants: [
-      { name: "WeWork", startDate: "2020-01-01", endDate: "2026-12-31", leaseType: "3/6/9", annualRent: 380000, indexation: "ILAT", walt: 2.8, walb: 2.0 },
-      { name: "Startup Tech", startDate: "2023-06-01", endDate: "2026-05-31", leaseType: "Dérogatoire", annualRent: 140000, indexation: "ILAT", walt: 2.2, walb: 2.2 },
-    ],
-    investment: { acquisitionPrice: 7400000, estimatedFees: 518000, totalInvested: 7918000, capexHistory: [{ year: "2023", amount: 150000, description: "Aménagement flex" }], capexProjection: [{ year: "2027", amount: 300000, description: "Rénovation plateaux" }] },
-    triDetail: { investmentSummary: 7918000, capexHistorique: 150000, capexProjection: 300000, projectedRents: 5420000, netCashflow: 4970000, exitValueHypothesis: 7800000 },
-    aiSummary: "Bureaux exploités en flex par WeWork près de la Gare de Lyon. Rendement de 7% correct mais dépendance à WeWork. Vacance de 12% à surveiller.",
-    strengths: ["Localisation Gare de Lyon", "Immeuble récent", "Rendement correct"],
-    weaknesses: ["Dépendance WeWork", "WALB court", "Vacance 12%"],
-    analysisDecision: "À suivre avec prudence.", analysisDecisionStatus: "Neutre",
-    portfolioImpact: "Positif", portfolioReasons: ["Exposition Paris intra-muros", "Diversification flex"],
-    globalSummary: "En veille active – conditionné à la renégociation WeWork.",
-  },
-  {
-    id: "no8", code: "NOP-2024-008", name: "Portefeuille résidentiel Rennes", assetType: "Résidentiel", city: "Rennes 35", address: "Multisites – centre-ville", surface: 4500, askingPrice: 11500000, currentRent: 690000, yieldRate: 6.0, triEstimated: 6.0, score: 60, status: "Nouveau", source: "Savills", receptionDate: "2024-06-05",
-    keyFacts: { constructionYear: 1995, occupancyRate: 96, walt: 2.8, walb: 1.5, mainTenant: "Divers particuliers", indexation: "IRL" },
-    tenants: [
-      { name: "Divers particuliers (62 lots)", startDate: "2020-01-01", endDate: "2026-12-31", leaseType: "Habitation", annualRent: 690000, indexation: "IRL", walt: 2.8, walb: 1.5 },
-    ],
-    investment: { acquisitionPrice: 11500000, estimatedFees: 805000, totalInvested: 12305000, capexHistory: [{ year: "2022", amount: 220000, description: "Ravalement 2 immeubles" }], capexProjection: [{ year: "2026", amount: 380000, description: "Rénovation parties communes" }, { year: "2029", amount: 450000, description: "Mise aux normes DPE" }] },
-    triDetail: { investmentSummary: 12305000, capexHistorique: 220000, capexProjection: 830000, projectedRents: 7200000, netCashflow: 6150000, exitValueHypothesis: 12000000 },
-    aiSummary: "Portefeuille de 62 logements en centre-ville de Rennes. Taux d'occupation élevé (96%). Dynamique démographique forte. Maintenance à prévoir.",
-    strengths: ["Taux d'occupation 96%", "Dynamique démographique", "Mutualisation risque locatif"],
-    weaknesses: ["Rendement modeste", "Maintenance à anticiper", "WALB court", "Gestion intensive"],
-    analysisDecision: "Correcte pour stratégie résidentielle défensive.", analysisDecisionStatus: "Positif",
-    portfolioImpact: "Positif", portfolioReasons: ["Diversification géographique", "Mutualisation du risque"],
-    globalSummary: "Éligible sous conditions de confirmation de la stratégie résidentielle.",
+    investment: { acquisitionPrice: 5900000, estimatedFees: 413000, totalInvested: 6313000, capexHistory: [{ year: "2021", amount: 120000, description: "Réfection parking" }], capexProjection: [{ year: "2025", amount: 200000, description: "Ravalement façade" }, { year: "2028", amount: 350000, description: "Rénovation énergétique" }] },
+    triDetail: { investmentSummary: 6313000, capexHistorique: 120000, capexProjection: 550000, projectedRents: 4200000, netCashflow: 3530000, exitValueHypothesis: 5200000 },
+    aiSummary: "Retail park de zone périurbaine avec vacance significative (22%). TRI estimé faible à 5.8% en raison des capex importants. Zone commerciale concurrentielle.",
+    strengths: ["Rendement facial 7.1%", "Diversification géographique"],
+    weaknesses: ["Vacance 22%", "Zone concurrentielle", "WALB très court (1.2 an)", "Capex élevés"],
+    analysisDecision: "Rejet recommandé.", analysisDecisionStatus: "Négatif",
+    portfolioImpact: "Négatif", portfolioReasons: ["Augmente le risque vacance", "TRI insuffisant"],
+    globalSummary: "Opportunité non retenue — TRI sous seuil et risque vacance élevé.",
   },
 ];
