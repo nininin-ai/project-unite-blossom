@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
-import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getAssetAnnualRent, getAssetOccupiedSurface, leaseHasTrienniale, getLeaseAnnualRent } from "@/data/mockData";
+import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getLeaseAnnualRent, leaseHasTrienniale } from "@/data/mockData";
 import { useUpdateAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
 
@@ -19,7 +19,19 @@ interface EditAssetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const emptyLot = (): Lot => ({ id: crypto.randomUUID(), name: "", surface: 0, type: "Bureau" });
+/** Auto-generate lot name from floor level + alphabet index */
+const autoLotName = (floorLevel: number, lotIndex: number): string => {
+  const letter = String.fromCharCode(65 + (lotIndex % 26)); // A, B, C...
+  return `${floorLevel}${letter}`;
+};
+
+const emptyLot = (floorLevel: number, existingLots: Lot[]): Lot => ({
+  id: crypto.randomUUID(),
+  name: autoLotName(floorLevel, existingLots.length),
+  surface: 0,
+  type: "Bureau",
+});
+
 const emptyFloor = (level: number): Floor => ({ id: crypto.randomUUID(), name: `Étage ${level}`, level, lots: [] });
 const emptyLease = (): Lease => ({
   id: crypto.randomUUID(), tenantName: "", isParticulier: false, tenantSiren: "", startDate: "", endDate: "", triennialDate: "",
@@ -34,7 +46,7 @@ const formatCurrency = (v: number) => new Intl.NumberFormat("fr-FR", { style: "c
 const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) => {
   const updateMutation = useUpdateAsset();
 
-  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false, totalSurface: 0 });
+  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
   const [leases, setLeases] = useState<Lease[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [expandedLeases, setExpandedLeases] = useState<Set<string>>(new Set());
@@ -42,11 +54,15 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
 
   useEffect(() => {
     if (open) {
-      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete, totalSurface: asset.totalSurface });
-      setLeases(JSON.parse(JSON.stringify(asset.leases ?? [])));
+      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete });
+      const parsedLeases: Lease[] = JSON.parse(JSON.stringify(asset.leases ?? []));
+      setLeases(parsedLeases);
       setCharges((asset.charges ?? []).map(c => ({ ...c })));
-      setExpandedLeases(new Set());
-      setExpandedFloors(new Set());
+      // Expand all leases and floors by default
+      const leaseIds = new Set(parsedLeases.map(l => l.id));
+      const floorIds = new Set(parsedLeases.flatMap(l => (l.floors ?? []).map(f => f.id)));
+      setExpandedLeases(leaseIds);
+      setExpandedFloors(floorIds);
     }
   }, [open, asset]);
 
@@ -54,11 +70,9 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
     return leases.reduce((s, l) => s + getLeaseAnnualRent(l), 0);
   }, [leases]);
 
-  const occupiedSurface = useMemo(() => {
+  const totalSurface = useMemo(() => {
     return leases.reduce((s, l) => s + (l.floors ?? []).reduce((fs, f) => fs + f.lots.reduce((ls, lot) => ls + lot.surface, 0), 0), 0);
   }, [leases]);
-
-  const vacantSurface = Math.max(0, form.totalSurface - occupiedSurface);
 
   const setField = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
   const toggle = (set: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) => set(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -66,14 +80,26 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
   // Lease operations
   const updateLease = (li: number, key: keyof Lease, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, [key]: value } : l));
   const removeLease = (li: number) => setLeases(prev => prev.filter((_, i) => i !== li));
+  const addLease = () => {
+    const l = emptyLease();
+    setLeases(prev => [...prev, l]);
+    setExpandedLeases(prev => new Set([...prev, l.id]));
+  };
 
   // Floor operations within a lease
-  const addFloorToLease = (li: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: [...l.floors, emptyFloor(l.floors.length)] } : l));
+  const addFloorToLease = (li: number) => {
+    setLeases(prev => prev.map((l, i) => {
+      if (i !== li) return l;
+      const f = emptyFloor(l.floors.length);
+      setExpandedFloors(prev2 => new Set([...prev2, f.id]));
+      return { ...l, floors: [...l.floors, f] };
+    }));
+  };
   const updateFloorInLease = (li: number, fi: number, key: keyof Floor, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, [key]: value } : f) } : l));
   const removeFloorFromLease = (li: number, fi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.filter((_, j) => j !== fi) } : l));
 
   // Lot operations within a floor within a lease
-  const addLotToFloor = (li: number, fi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: [...f.lots, emptyLot()] } : f) } : l));
+  const addLotToFloor = (li: number, fi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: [...f.lots, emptyLot(f.level, f.lots)] } : f) } : l));
   const updateLotInFloor = (li: number, fi: number, loi: number, key: keyof Lot, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: f.lots.map((lot, k) => k === loi ? { ...lot, [key]: value } : lot) } : f) } : l));
   const removeLotFromFloor = (li: number, fi: number, loi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: f.lots.filter((_, k) => k !== loi) } : f) } : l));
 
@@ -83,7 +109,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
     const yieldVal = form.acquisitionPrice > 0 ? +((computedAnnualRent / form.acquisitionPrice) * 100).toFixed(2) : 0;
     updateMutation.mutate({
       id: asset.id,
-      updates: { ...form, annualRent: computedAnnualRent, vacantSurface, yield: yieldVal, leases, charges },
+      updates: { ...form, totalSurface, annualRent: computedAnnualRent, vacantSurface: 0, yield: yieldVal, leases, charges },
     }, { onSuccess: () => onOpenChange(false) });
   };
 
@@ -109,13 +135,11 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
               <div className="grid gap-1.5"><Label>Prix d'acquisition (€)</Label><Input type="number" value={form.acquisitionPrice} onChange={e => setField("acquisitionPrice", +e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Date d'acquisition</Label><Input type="date" value={form.acquisitionDate} onChange={e => setField("acquisitionDate", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Année construction</Label><Input type="number" value={form.constructionYear} onChange={e => setField("constructionYear", +e.target.value)} /></div>
-              <div className="grid gap-1.5"><Label>Surface totale (m²)</Label><Input type="number" value={form.totalSurface} onChange={e => setField("totalSurface", +e.target.value)} /></div>
               <div className="flex items-center gap-3 col-span-full"><Switch checked={form.isCopropriete} onCheckedChange={v => setField("isCopropriete", v)} /><Label>Copropriété</Label></div>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
               <div className="flex justify-between"><span className="text-muted-foreground">Loyer annuel (calculé)</span><span className="font-semibold text-foreground">{formatCurrency(computedAnnualRent)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Surface occupée</span><span className="font-semibold text-foreground">{occupiedSurface.toLocaleString("fr-FR")} m²</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Surface vacante</span><span className="font-semibold text-warning">{vacantSurface.toLocaleString("fr-FR")} m²</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Surface totale (calculée)</span><span className="font-semibold text-foreground">{totalSurface.toLocaleString("fr-FR")} m²</span></div>
             </div>
           </TabsContent>
 
@@ -123,7 +147,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
           <TabsContent value="locataires" className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Locataire → Étage → Lot</p>
-              <Button size="sm" variant="outline" onClick={() => setLeases(l => [...l, emptyLease()])} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Locataire</Button>
+              <Button size="sm" variant="outline" onClick={addLease} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Locataire</Button>
             </div>
 
             {leases.map((lease, li) => (
@@ -131,7 +155,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
                 {/* Lease header */}
                 <div className="flex items-center gap-2 p-3 bg-muted/30 cursor-pointer" onClick={() => toggle(setExpandedLeases, lease.id)}>
                   {expandedLeases.has(lease.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <span className="text-sm font-semibold text-foreground">{lease.tenantName || "Nouveau locataire"}</span>
+                  <span className="text-sm font-semibold text-foreground">Locataire – {lease.tenantName || "Nouveau locataire"}</span>
                   <span className="text-xs text-muted-foreground ml-auto">{formatCurrency(getLeaseAnnualRent(lease))}/an</span>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={e => { e.stopPropagation(); removeLease(li); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
