@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
@@ -23,6 +23,12 @@ const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
   const [editOpen, setEditOpen] = useState(false);
+  const [editDefaultTab, setEditDefaultTab] = useState("general");
+
+  const openEditOn = (tab: string) => {
+    setEditDefaultTab(tab);
+    setEditOpen(true);
+  };
 
   const mockAsset = mockAssets.find((a) => a.id === id);
   const asset = dbAsset ?? mockAsset;
@@ -47,7 +53,7 @@ const AssetDetail = () => {
       <div className="flex items-center justify-between">
         <Link to="/assets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft className="h-4 w-4" /> Retour au parc</Link>
         <div className="flex items-center gap-2">
-          {isDbAsset && <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5"><Pencil className="h-3.5 w-3.5" /> Modifier</Button>}
+          {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("general")} className="gap-1.5"><Pencil className="h-3.5 w-3.5" /> Modifier</Button>}
           <Link to={`/assets/${id}/fiche-commerciale`} className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 transition-colors"><FileSpreadsheet className="h-4 w-4" /> Fiche de commercialisation</Link>
         </div>
       </div>
@@ -138,71 +144,95 @@ const AssetDetail = () => {
                     </Sheet>
                   );
                 })}
-                {leases.length === 0 && <tr><td colSpan={11} className="py-6 text-center text-muted-foreground">Aucun locataire actif</td></tr>}
+                {leases.length === 0 && (
+                  <tr><td colSpan={11} className="py-10 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Users className="h-8 w-8 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground">Aucun locataire actif</p>
+                      {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("surfaces")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter un locataire</Button>}
+                    </div>
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </motion.div>
         </TabsContent>
 
         <TabsContent value="surfaces" className="space-y-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des surfaces</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Étage", "Lot", "Type", "Surface", "Statut"].map(h => (
-                    <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allLots.map(l => (
-                  <tr key={l.id} className="border-b border-border/50">
-                    <td className="py-3 px-3 font-medium text-foreground">{l.floorName}</td>
-                    <td className="py-3 px-3 text-foreground">{l.name}</td>
-                    <td className="py-3 px-3"><span className="badge-neutral">{l.type}</span></td>
-                    <td className="py-3 px-3 text-foreground">{l.surface.toLocaleString("fr-FR")} m²</td>
-                    <td className="py-3 px-3">{l.lease ? <span className="badge-success">Occupé – {l.lease.tenantName}</span> : <span className="badge-warning">Vacant</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border">
-                  <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total</td>
-                  <td className="py-3 px-3 font-semibold text-foreground">{totalLotSurface.toLocaleString("fr-FR")} m²</td>
-                  <td className="py-3 px-3"><span className={`font-semibold ${totalLotVacant > 0 ? "text-warning" : "text-success"}`}>{totalLotVacant > 0 ? `${totalLotVacant.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
-                </tr>
-              </tfoot>
-            </table>
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="charges" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {allLots.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card flex flex-col items-center justify-center py-12 gap-3">
+              <LayoutGrid className="h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Aucune surface renseignée</p>
+              {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("surfaces")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter des surfaces</Button>}
+            </motion.div>
+          ) : (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des surfaces</h3>
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-border">{["Nature", "Montant annuel", "Refacturation", "Commentaire"].map(h => <th key={h} className="table-header text-left py-3 px-3">{h}</th>)}</tr></thead>
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Étage", "Lot", "Type", "Surface", "Statut"].map(h => (
+                      <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
                 <tbody>
-                  {asset.charges.map(c => (
-                    <tr key={c.id} className="border-b border-border/50">
-                      <td className="py-3 px-3 font-medium text-foreground">{c.nature}</td>
-                      <td className="py-3 px-3 text-foreground">{formatCurrency(c.annualAmount)}</td>
-                      <td className="py-3 px-3">{c.rebillable ? <span className="badge-success">{c.rebillablePercent}%</span> : <span className="badge-neutral">Non</span>}</td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground">{c.comment || "–"}</td>
+                  {allLots.map(l => (
+                    <tr key={l.id} className="border-b border-border/50">
+                      <td className="py-3 px-3 font-medium text-foreground">{l.floorName}</td>
+                      <td className="py-3 px-3 text-foreground">{l.name}</td>
+                      <td className="py-3 px-3"><span className="badge-neutral">{l.type}</span></td>
+                      <td className="py-3 px-3 text-foreground">{l.surface.toLocaleString("fr-FR")} m²</td>
+                      <td className="py-3 px-3">{l.lease ? <span className="badge-success">Occupé – {l.lease.tenantName}</span> : <span className="badge-warning">Vacant</span>}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot><tr className="border-t-2 border-border"><td className="py-3 px-3 font-semibold text-foreground">Total</td><td className="py-3 px-3 font-semibold text-foreground">{formatCurrency(totalCharges)}</td><td colSpan={2}></td></tr></tfoot>
+                <tfoot>
+                  <tr className="border-t-2 border-border">
+                    <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total</td>
+                    <td className="py-3 px-3 font-semibold text-foreground">{totalLotSurface.toLocaleString("fr-FR")} m²</td>
+                    <td className="py-3 px-3"><span className={`font-semibold ${totalLotVacant > 0 ? "text-warning" : "text-success"}`}>{totalLotVacant > 0 ? `${totalLotVacant.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
+                  </tr>
+                </tfoot>
               </table>
             </motion.div>
-            <div className="kpi-card">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des charges</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart><Pie data={chargeData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">{chargeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 8, fontSize: 12 }} /></PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-3 mt-2">{chargeData.map((c, i) => <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />{c.name}</div>)}</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="charges" className="space-y-4">
+          {asset.charges.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card flex flex-col items-center justify-center py-12 gap-3">
+              <Receipt className="h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Aucune charge renseignée</p>
+              {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("charges")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter une charge</Button>}
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border">{["Nature", "Montant annuel", "Refacturation", "Commentaire"].map(h => <th key={h} className="table-header text-left py-3 px-3">{h}</th>)}</tr></thead>
+                  <tbody>
+                    {asset.charges.map(c => (
+                      <tr key={c.id} className="border-b border-border/50">
+                        <td className="py-3 px-3 font-medium text-foreground">{c.nature}</td>
+                        <td className="py-3 px-3 text-foreground">{formatCurrency(c.annualAmount)}</td>
+                        <td className="py-3 px-3">{c.rebillable ? <span className="badge-success">{c.rebillablePercent}%</span> : <span className="badge-neutral">Non</span>}</td>
+                        <td className="py-3 px-3 text-xs text-muted-foreground">{c.comment || "–"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot><tr className="border-t-2 border-border"><td className="py-3 px-3 font-semibold text-foreground">Total</td><td className="py-3 px-3 font-semibold text-foreground">{formatCurrency(totalCharges)}</td><td colSpan={2}></td></tr></tfoot>
+                </table>
+              </motion.div>
+              <div className="kpi-card">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des charges</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart><Pie data={chargeData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">{chargeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 8, fontSize: 12 }} /></PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap justify-center gap-3 mt-2">{chargeData.map((c, i) => <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />{c.name}</div>)}</div>
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="info">
@@ -234,7 +264,7 @@ const AssetDetail = () => {
         </TabsContent>
       </Tabs>
 
-      {isDbAsset && asset && <EditAssetDialog asset={asset} open={editOpen} onOpenChange={setEditOpen} />}
+      {isDbAsset && asset && <EditAssetDialog asset={asset} open={editOpen} onOpenChange={setEditOpen} defaultTab={editDefaultTab} />}
     </div>
   );
 };
