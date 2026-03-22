@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { mockNewOpportunities } from "@/data/mockData";
+import { mockOpportunities as mockNewOpportunities } from "@/data/mockData";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
