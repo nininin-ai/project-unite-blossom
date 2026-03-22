@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
-import { mockAssets, getAssetLeases, formatIndexRef } from "@/data/mockData";
+import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
@@ -75,65 +75,70 @@ const AssetDetail = () => {
         ))}
       </div>
 
-      <Tabs defaultValue="occupation" className="space-y-4">
+      <Tabs defaultValue="locataire" className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
-          <TabsTrigger value="occupation" className="text-xs">Occupation</TabsTrigger>
+          <TabsTrigger value="locataire" className="text-xs">Locataire</TabsTrigger>
           <TabsTrigger value="surfaces" className="text-xs">Surfaces</TabsTrigger>
           <TabsTrigger value="charges" className="text-xs">Charges / Coûts</TabsTrigger>
           <TabsTrigger value="info" className="text-xs">Informations</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="occupation" className="space-y-4">
+        <TabsContent value="locataire" className="space-y-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Baux actifs</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Locataires actifs</h3>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Locataire", "Lot", "Étage", "Début", "Échéance", "Type bail", "Loyer annuel", "Indice", "TVA", "Impayé"].map(h => (
+                  {["Locataire", "Lot", "Étage", "Début", "Échéance", "Triennale", "Type bail", "Loyer annuel", "Indice", "TVA", "Impayé"].map(h => (
                     <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {leases.map(l => (
-                  <Sheet key={l.id}>
-                    <SheetTrigger asChild>
-                      <tr className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
-                        <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{l.tenantName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.lotName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.floorName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.startDate ? new Date(l.startDate).toLocaleDateString("fr-FR") : "–"}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.endDate ? new Date(l.endDate).toLocaleDateString("fr-FR") : "–"}</td>
-                        <td className="py-3 px-3"><span className="badge-neutral">{l.leaseType}</span></td>
-                        <td className="py-3 px-3 font-medium text-foreground">{formatCurrency(l.currentRent)}</td>
-                        <td className="py-3 px-3 text-muted-foreground">{l.index !== "Aucun" ? `${l.index} (${formatIndexRef(l)})` : "–"}</td>
-                        <td className="py-3 px-3">{l.isVatApplicable ? <span className="badge-neutral">{l.vatRate}%</span> : <span className="text-muted-foreground">Non</span>}</td>
-                        <td className="py-3 px-3">{l.unpaid ? <span className="badge-danger">{formatCurrency(l.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}</td>
-                      </tr>
-                    </SheetTrigger>
-                    <SheetContent>
-                      <SheetHeader><SheetTitle>{l.tenantName}</SheetTitle></SheetHeader>
-                      <div className="mt-6 space-y-4">
-                        {l.tenantSiren && (
-                          <a href={getPappersUrl(l.tenantName, l.tenantSiren)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors">
-                            <div className="h-10 w-10 rounded-lg bg-[hsl(220,55%,18%)] flex items-center justify-center text-white font-bold text-sm">P</div>
-                            <div className="flex-1"><p className="text-sm font-medium text-foreground">Voir sur Pappers</p><p className="text-xs text-muted-foreground">SIREN : {l.tenantSiren}</p></div>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          </a>
-                        )}
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Lot</div><div className="font-medium">{l.lotName} ({l.lotType})</div>
-                          <div className="text-muted-foreground">Surface</div><div className="font-medium">{l.lotSurface} m²</div>
-                          <div className="text-muted-foreground">Étage</div><div className="font-medium">{l.floorName}</div>
-                          <div className="text-muted-foreground">Loyer €/m²</div><div className="font-medium">{l.lotSurface > 0 ? (l.currentRent / l.lotSurface).toFixed(0) : "–"} €</div>
-                          {l.isVatApplicable && <><div className="text-muted-foreground">TVA</div><div className="font-medium">{l.vatRate}%</div></>}
+                {leases.map(l => {
+                  const triDate = getNextTriennialDate(l);
+                  return (
+                    <Sheet key={l.id}>
+                      <SheetTrigger asChild>
+                        <tr className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
+                          <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{l.tenantName}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.lotName}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.floorName}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.startDate ? new Date(l.startDate).toLocaleDateString("fr-FR") : "–"}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.endDate ? new Date(l.endDate).toLocaleDateString("fr-FR") : "–"}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{triDate ? new Date(triDate).toLocaleDateString("fr-FR") : "–"}</td>
+                          <td className="py-3 px-3"><span className="badge-neutral">{l.leaseType}</span></td>
+                          <td className="py-3 px-3 font-medium text-foreground">{formatCurrency(l.currentRent)}</td>
+                          <td className="py-3 px-3 text-muted-foreground">{l.index !== "Aucun" ? `${l.index} (${formatIndexRef(l)})` : "–"}</td>
+                          <td className="py-3 px-3">{l.isVatApplicable ? <span className="badge-neutral">{l.vatRate}%</span> : <span className="text-muted-foreground">Non</span>}</td>
+                          <td className="py-3 px-3">{l.unpaid ? <span className="badge-danger">{formatCurrency(l.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}</td>
+                        </tr>
+                      </SheetTrigger>
+                      <SheetContent>
+                        <SheetHeader><SheetTitle>{l.tenantName}</SheetTitle></SheetHeader>
+                        <div className="mt-6 space-y-4">
+                          {l.tenantSiren && !l.isParticulier && (
+                            <a href={getPappersUrl(l.tenantName, l.tenantSiren)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors">
+                              <div className="h-10 w-10 rounded-lg bg-[hsl(220,55%,18%)] flex items-center justify-center text-white font-bold text-sm">P</div>
+                              <div className="flex-1"><p className="text-sm font-medium text-foreground">Voir sur Pappers</p><p className="text-xs text-muted-foreground">SIREN : {l.tenantSiren}</p></div>
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            </a>
+                          )}
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-muted-foreground">Lot</div><div className="font-medium">{l.lotName} ({l.lotType})</div>
+                            <div className="text-muted-foreground">Surface</div><div className="font-medium">{l.lotSurface} m²</div>
+                            <div className="text-muted-foreground">Étage</div><div className="font-medium">{l.floorName}</div>
+                            <div className="text-muted-foreground">Loyer €/m²</div><div className="font-medium">{l.lotSurface > 0 ? (l.currentRent / l.lotSurface).toFixed(0) : "–"} €</div>
+                            {triDate && <><div className="text-muted-foreground">Prochaine triennale</div><div className="font-medium">{new Date(triDate).toLocaleDateString("fr-FR")}</div></>}
+                            {l.isVatApplicable && <><div className="text-muted-foreground">TVA</div><div className="font-medium">{l.vatRate}%</div></>}
+                          </div>
                         </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                ))}
-                {leases.length === 0 && <tr><td colSpan={10} className="py-6 text-center text-muted-foreground">Aucun bail actif</td></tr>}
+                      </SheetContent>
+                    </Sheet>
+                  );
+                })}
+                {leases.length === 0 && <tr><td colSpan={11} className="py-6 text-center text-muted-foreground">Aucun locataire actif</td></tr>}
               </tbody>
             </table>
           </motion.div>
@@ -211,7 +216,7 @@ const AssetDetail = () => {
                 { label: "Prix d'acquisition", value: formatCurrency(asset.acquisitionPrice) },
                 { label: "Date d'acquisition", value: asset.acquisitionDate ? new Date(asset.acquisitionDate).toLocaleDateString("fr-FR") : "–" },
                 { label: "Surface totale", value: `${asset.totalSurface.toLocaleString("fr-FR")} m²` },
-                { label: "Nombre de baux", value: leases.length.toString() },
+                { label: "Nombre de locataires", value: leases.length.toString() },
               ].map(item => (
                 <div key={item.label} className="flex justify-between py-2 border-b border-border/50">
                   <span className="text-muted-foreground">{item.label}</span>
