@@ -18,6 +18,7 @@ interface EditAssetDialogProps {
   asset: Asset;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: string;
 }
 
 const emptyLease = (): Lease => ({
@@ -39,7 +40,7 @@ const emptyFloor = (level: number): Floor => ({ id: crypto.randomUUID(), name: `
 
 const emptyCharge = (): Charge => ({ id: crypto.randomUUID(), nature: "", annualAmount: 0, rebillable: false, rebillablePercent: 0, comment: "" });
 
-const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) => {
+const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: EditAssetDialogProps) => {
   const updateMutation = useUpdateAsset();
 
   const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
@@ -79,7 +80,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Modifier l'actif</DialogTitle></DialogHeader>
-        <Tabs defaultValue="general" className="space-y-4">
+        <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList className="bg-muted/50 p-1 flex-wrap h-auto">
             <TabsTrigger value="general" className="text-xs">Général</TabsTrigger>
             <TabsTrigger value="surfaces" className="text-xs">Locataires et Surfaces</TabsTrigger>
