@@ -36,7 +36,7 @@ const AssetDetail = () => {
   const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
 
   const leases = getAssetLeases(asset);
-  const allLots = (asset.floors ?? []).flatMap(f => f.lots.map(l => ({ ...l, floorName: f.name, floorLevel: f.level })));
+  const allLots = (asset.floors ?? []).flatMap(f => (f.lots ?? []).map(l => ({ ...l, floorName: f.name, floorLevel: f.level })));
   const totalLotSurface = allLots.reduce((s, l) => s + l.surface, 0);
   const totalLotVacant = allLots.filter(l => !l.lease).reduce((s, l) => s + l.surface, 0);
 
