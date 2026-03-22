@@ -22,23 +22,6 @@ export interface Lease {
   isVatApplicable: boolean;
   vatRate?: number; // 5.5 | 10 | 20
 }
-  tenantSiren?: string;
-  startDate: string;
-  endDate: string;
-  triennialDate: string;
-  leaseType: string;
-  deposit: number;
-  currentRent: number;
-  index: string; // ILC | ILAT | ICC | Aucun
-  indexQuarter: string; // T1 | T2 | T3 | T4
-  indexYear: number;
-  accompaniment: string;
-  chargesManagement: string;
-  unpaid: boolean;
-  unpaidAmount?: number;
-  isVatApplicable: boolean;
-  vatRate?: number; // 5.5 | 10 | 20
-}
 
 export interface Lot {
   id: string;
