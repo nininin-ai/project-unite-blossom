@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { mockAssets, Asset } from "@/data/mockData";
+import { mockAssets, Asset, getAssetLeases } from "@/data/mockData";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Building2, Grid3X3, List, MapPin, TrendingUp, Trash2, Loader2 } from "lucide-react";
@@ -27,7 +27,6 @@ const Assets = () => {
   const importMutation = useImportAssets();
   const deleteMutation = useDeleteAsset();
 
-  // Use DB assets if available, otherwise fall back to mock
   const assets = dbAssets && dbAssets.length > 0 ? dbAssets : mockAssets;
 
   const handleImport = (newAssets: Asset[]) => {
@@ -48,23 +47,11 @@ const Assets = () => {
         <div className="flex items-center gap-2">
           <AddAssetDialog />
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button
-              variant={view === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setView("cards")}
-              className="h-8 px-3"
-            >
-              <Grid3X3 className="h-4 w-4 mr-1.5" />
-              Cartes
+            <Button variant={view === "cards" ? "default" : "ghost"} size="sm" onClick={() => setView("cards")} className="h-8 px-3">
+              <Grid3X3 className="h-4 w-4 mr-1.5" /> Cartes
             </Button>
-            <Button
-              variant={view === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setView("table")}
-              className="h-8 px-3"
-            >
-              <List className="h-4 w-4 mr-1.5" />
-              Tableau
+            <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} className="h-8 px-3">
+              <List className="h-4 w-4 mr-1.5" /> Tableau
             </Button>
           </div>
         </div>
@@ -78,47 +65,28 @@ const Assets = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {assets.map((asset, i) => {
             const vacancyRate = (asset.vacantSurface / asset.totalSurface * 100).toFixed(1);
-            const hasUnpaid = asset.tenants.some(t => t.unpaid);
+            const hasUnpaid = getAssetLeases(asset).some(l => l.unpaid);
             return (
-              <motion.div
-                key={asset.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="relative group/card"
-              >
+              <motion.div key={asset.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="relative group/card">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button
-                      className="absolute top-3 right-3 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity p-1.5 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive"
-                      title="Supprimer cet actif"
-                    >
+                    <button className="absolute top-3 right-3 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity p-1.5 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive" title="Supprimer cet actif">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Supprimer {asset.name} ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible. L'actif sera définitivement supprimé du parc.
-                      </AlertDialogDescription>
+                      <AlertDialogDescription>Cette action est irréversible. L'actif sera définitivement supprimé du parc.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(asset.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Supprimer
-                      </AlertDialogAction>
+                      <AlertDialogAction onClick={() => handleDelete(asset.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <Link
-                  to={`/assets/${asset.id}`}
-                  className="block kpi-card group hover:border-accent/30 transition-all"
-                >
+                <Link to={`/assets/${asset.id}`} className="block kpi-card group hover:border-accent/30 transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
                       <Building2 className="h-5 w-5 text-accent" />
@@ -156,12 +124,6 @@ const Assets = () => {
 
                   <div className="mt-4 flex items-center justify-between">
                     <span className="badge-neutral">{asset.type}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-muted-foreground">Score risque</span>
-                      <span className={`text-xs font-bold ${asset.riskScore >= 70 ? "text-destructive" : asset.riskScore >= 50 ? "text-warning" : "text-success"}`}>
-                        {asset.riskScore}
-                      </span>
-                    </div>
                   </div>
                 </Link>
               </motion.div>
@@ -180,7 +142,6 @@ const Assets = () => {
                 <TableHead className="text-right">Loyer annuel</TableHead>
                 <TableHead className="text-right">Rendement</TableHead>
                 <TableHead className="text-right">Vacance</TableHead>
-                <TableHead className="text-right">Risque</TableHead>
                 <TableHead className="text-center">Statut</TableHead>
                 <TableHead className="text-center w-12"></TableHead>
               </TableRow>
@@ -188,7 +149,7 @@ const Assets = () => {
             <TableBody>
               {assets.map((asset) => {
                 const vacancyRate = (asset.vacantSurface / asset.totalSurface * 100).toFixed(1);
-                const hasUnpaid = asset.tenants.some(t => t.unpaid);
+                const hasUnpaid = getAssetLeases(asset).some(l => l.unpaid);
                 return (
                   <TableRow key={asset.id} className="group">
                     <TableCell>
@@ -207,39 +168,24 @@ const Assets = () => {
                         {vacancyRate}%
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <span className={`font-bold ${asset.riskScore >= 70 ? "text-destructive" : asset.riskScore >= 50 ? "text-warning" : "text-success"}`}>
-                        {asset.riskScore}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-center">
                       {hasUnpaid && <span className="badge-danger">Impayé</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                            title="Supprimer"
-                          >
+                          <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Supprimer">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Supprimer {asset.name} ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Cette action est irréversible. L'actif sera définitivement supprimé du parc.
-                            </AlertDialogDescription>
+                            <AlertDialogDescription>Cette action est irréversible. L'actif sera définitivement supprimé du parc.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(asset.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Supprimer
-                            </AlertDialogAction>
+                            <AlertDialogAction onClick={() => handleDelete(asset.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
