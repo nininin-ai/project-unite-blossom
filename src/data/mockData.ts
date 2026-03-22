@@ -116,6 +116,28 @@ export function formatIndexRef(lease: Lease): string {
   return `${lease.indexQuarter} ${lease.indexYear}`;
 }
 
+// Compute next triennial date for 3/6/9 or 6/9 leases
+export function getNextTriennialDate(lease: Lease): string | null {
+  if (!lease.startDate) return null;
+  const type = lease.leaseType;
+  if (type !== "3/6/9" && type !== "6/9") return null;
+  const start = new Date(lease.startDate);
+  if (isNaN(start.getTime())) return null;
+  const now = new Date();
+  const offsets = type === "3/6/9" ? [3, 6, 9] : [6, 9];
+  for (const y of offsets) {
+    const d = new Date(start);
+    d.setFullYear(d.getFullYear() + y);
+    if (d > now) return d.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
+// Compute annual rent from all leases in an asset
+export function getAssetAnnualRent(asset: Asset): number {
+  return getAssetLeases(asset).reduce((s, l) => s + l.currentRent, 0);
+}
+
 // ── Constants ──
 export const LEASE_TYPES = ["3/6/9", "6/9", "Dérogatoire", "Précaire", "Professionnel", "Bail civil"];
 export const INDEX_TYPES = ["ILC", "ILAT", "ICC", "Aucun"];
@@ -127,11 +149,12 @@ export const VAT_RATES = [5.5, 10, 20];
 
 const mkLease = (p: Partial<Lease> & { tenantName: string; currentRent: number }): Lease => ({
   id: crypto.randomUUID ? crypto.randomUUID() : `l-${Math.random().toString(36).slice(2, 8)}`,
+  isParticulier: false,
   startDate: "",
   endDate: "",
-  
   leaseType: "3/6/9",
   deposit: 0,
+  rentInputMode: "annual",
   index: "ILAT",
   indexQuarter: "T3",
   indexYear: 2024,
