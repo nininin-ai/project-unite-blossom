@@ -20,7 +20,6 @@ const AddAssetDialog = () => {
     address: "",
     city: "",
     type: "Bureau",
-    totalSurface: 0,
     acquisitionPrice: 0,
     acquisitionDate: "",
     constructionYear: 2000,
@@ -33,7 +32,8 @@ const AddAssetDialog = () => {
     if (!form.name.trim()) return;
     const asset: Omit<Asset, "id"> = {
       ...form,
-      vacantSurface: form.totalSurface,
+      totalSurface: 0,
+      vacantSurface: 0,
       annualRent: 0,
       yield: 0,
       charges: [],
@@ -42,7 +42,7 @@ const AddAssetDialog = () => {
     createMutation.mutate(asset, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ name: "", address: "", city: "", type: "Bureau", totalSurface: 0, acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
+        setForm({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
       },
     });
   };
@@ -70,10 +70,7 @@ const AddAssetDialog = () => {
             </div>
             <div className="grid gap-2"><Label htmlFor="constructionYear">Année construction</Label><Input id="constructionYear" type="number" value={form.constructionYear} onChange={(e) => set("constructionYear", +e.target.value)} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2"><Label htmlFor="totalSurface">Surface totale (m²)</Label><Input id="totalSurface" type="number" value={form.totalSurface || ""} onChange={(e) => set("totalSurface", +e.target.value)} /></div>
-            <div className="grid gap-2"><Label htmlFor="acquisitionPrice">Prix d'acquisition (€)</Label><Input id="acquisitionPrice" type="number" value={form.acquisitionPrice || ""} onChange={(e) => set("acquisitionPrice", +e.target.value)} /></div>
-          </div>
+          <div className="grid gap-2"><Label htmlFor="acquisitionPrice">Prix d'acquisition (€)</Label><Input id="acquisitionPrice" type="number" value={form.acquisitionPrice || ""} onChange={(e) => set("acquisitionPrice", +e.target.value)} /></div>
           <div className="grid gap-2"><Label htmlFor="acquisitionDate">Date d'acquisition</Label><Input id="acquisitionDate" type="date" value={form.acquisitionDate} onChange={(e) => set("acquisitionDate", e.target.value)} /></div>
           <div className="flex items-center gap-3"><Switch checked={form.isCopropriete} onCheckedChange={(v) => set("isCopropriete", v)} /><Label>Copropriété</Label></div>
         </div>
