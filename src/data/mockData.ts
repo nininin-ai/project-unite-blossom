@@ -1,8 +1,27 @@
-// ── New hierarchical structure: Asset → Floor → Lot → Lease ──
+// ── Hierarchical structure: Asset → Floor → Lot → Lease ──
+// Lease lives inside a Lot, which lives inside a Floor
 
 export interface Lease {
   id: string;
   tenantName: string;
+  tenantSiren?: string;
+  isParticulier: boolean; // if true, no SIREN
+  startDate: string;
+  endDate: string;
+  leaseType: string;
+  deposit: number;
+  currentRent: number;
+  rentInputMode: "annual" | "monthly"; // how the user entered the rent
+  index: string; // ILC | ILAT | ICC | Aucun
+  indexQuarter: string; // T1 | T2 | T3 | T4
+  indexYear: number;
+  accompaniment: string;
+  chargesManagement: string;
+  unpaid: boolean;
+  unpaidAmount?: number;
+  isVatApplicable: boolean;
+  vatRate?: number; // 5.5 | 10 | 20
+}
   tenantSiren?: string;
   startDate: string;
   endDate: string;
