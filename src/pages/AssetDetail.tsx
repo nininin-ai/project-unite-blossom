@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
-import { mockAssets, getAssetLeases, formatIndexRef } from "@/data/mockData";
+import { mockAssets, getAssetLeases, getLeaseAnnualRent, formatIndexRef, leaseHasTrienniale } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, FileText, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
@@ -35,10 +35,10 @@ const AssetDetail = () => {
   const COLORS = ["hsl(187,72%,40%)", "hsl(220,55%,18%)", "hsl(152,60%,40%)", "hsl(38,92%,50%)", "hsl(0,72%,51%)", "hsl(270,50%,50%)"];
   const totalCharges = asset.charges.reduce((s, c) => s + c.annualAmount, 0);
 
-  const leases = getAssetLeases(asset);
-  const allLots = (asset.floors ?? []).flatMap(f => f.lots.map(l => ({ ...l, floorName: f.name, floorLevel: f.level })));
+  const flatLeases = getAssetLeases(asset);
+  // All lots from all leases
+  const allLots = (asset.leases ?? []).flatMap(l => (l.floors ?? []).flatMap(f => f.lots.map(lot => ({ ...lot, floorName: f.name, floorLevel: f.level, tenantName: l.tenantName }))));
   const totalLotSurface = allLots.reduce((s, l) => s + l.surface, 0);
-  const totalLotVacant = allLots.filter(l => !l.lease).reduce((s, l) => s + l.surface, 0);
 
   const isDbAsset = !!dbAsset;
 
@@ -75,18 +75,18 @@ const AssetDetail = () => {
         ))}
       </div>
 
-      <Tabs defaultValue="occupation" className="space-y-4">
+      <Tabs defaultValue="locataires" className="space-y-4">
         <TabsList className="bg-muted/50 p-1">
-          <TabsTrigger value="occupation" className="text-xs">Occupation</TabsTrigger>
+          <TabsTrigger value="locataires" className="text-xs">Locataires</TabsTrigger>
           <TabsTrigger value="surfaces" className="text-xs">Surfaces</TabsTrigger>
           <TabsTrigger value="charges" className="text-xs">Charges / Coûts</TabsTrigger>
           <TabsTrigger value="info" className="text-xs">Informations</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="occupation" className="space-y-4">
+        <TabsContent value="locataires" className="space-y-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Baux actifs</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Locataires actifs</h3>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -96,44 +96,49 @@ const AssetDetail = () => {
                 </tr>
               </thead>
               <tbody>
-                {leases.map(l => (
-                  <Sheet key={l.id}>
-                    <SheetTrigger asChild>
-                      <tr className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
-                        <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{l.tenantName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.lotName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.floorName}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.startDate ? new Date(l.startDate).toLocaleDateString("fr-FR") : "–"}</td>
-                        <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{l.endDate ? new Date(l.endDate).toLocaleDateString("fr-FR") : "–"}</td>
-                        <td className="py-3 px-3"><span className="badge-neutral">{l.leaseType}</span></td>
-                        <td className="py-3 px-3 font-medium text-foreground">{formatCurrency(l.currentRent)}</td>
-                        <td className="py-3 px-3 text-muted-foreground">{l.index !== "Aucun" ? `${l.index} (${formatIndexRef(l)})` : "–"}</td>
-                        <td className="py-3 px-3">{l.isVatApplicable ? <span className="badge-neutral">{l.vatRate}%</span> : <span className="text-muted-foreground">Non</span>}</td>
-                        <td className="py-3 px-3">{l.unpaid ? <span className="badge-danger">{formatCurrency(l.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}</td>
-                      </tr>
-                    </SheetTrigger>
-                    <SheetContent>
-                      <SheetHeader><SheetTitle>{l.tenantName}</SheetTitle></SheetHeader>
-                      <div className="mt-6 space-y-4">
-                        {l.tenantSiren && (
-                          <a href={getPappersUrl(l.tenantName, l.tenantSiren)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors">
-                            <div className="h-10 w-10 rounded-lg bg-[hsl(220,55%,18%)] flex items-center justify-center text-white font-bold text-sm">P</div>
-                            <div className="flex-1"><p className="text-sm font-medium text-foreground">Voir sur Pappers</p><p className="text-xs text-muted-foreground">SIREN : {l.tenantSiren}</p></div>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          </a>
-                        )}
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Lot</div><div className="font-medium">{l.lotName} ({l.lotType})</div>
-                          <div className="text-muted-foreground">Surface</div><div className="font-medium">{l.lotSurface} m²</div>
-                          <div className="text-muted-foreground">Étage</div><div className="font-medium">{l.floorName}</div>
-                          <div className="text-muted-foreground">Loyer €/m²</div><div className="font-medium">{l.lotSurface > 0 ? (l.currentRent / l.lotSurface).toFixed(0) : "–"} €</div>
-                          {l.isVatApplicable && <><div className="text-muted-foreground">TVA</div><div className="font-medium">{l.vatRate}%</div></>}
+                {(asset.leases ?? []).map(lease => {
+                  const annualRent = getLeaseAnnualRent(lease);
+                  const lots = (lease.floors ?? []).flatMap(f => f.lots.map(l => ({ ...l, floorName: f.name })));
+                  return (
+                    <Sheet key={lease.id}>
+                      <SheetTrigger asChild>
+                        <tr className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
+                          <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{lease.tenantName}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{lots.map(l => l.name).join(", ")}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{lots.map(l => l.floorName).filter((v, i, a) => a.indexOf(v) === i).join(", ")}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{lease.startDate ? new Date(lease.startDate).toLocaleDateString("fr-FR") : "–"}</td>
+                          <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{lease.endDate ? new Date(lease.endDate).toLocaleDateString("fr-FR") : "–"}</td>
+                          <td className="py-3 px-3"><span className="badge-neutral">{lease.leaseType}</span></td>
+                          <td className="py-3 px-3 font-medium text-foreground">{formatCurrency(annualRent)}</td>
+                          <td className="py-3 px-3 text-muted-foreground">{lease.index !== "Aucun" ? `${lease.index} (${formatIndexRef(lease)})` : "–"}</td>
+                          <td className="py-3 px-3">{lease.isVatApplicable ? <span className="badge-neutral">{lease.vatRate}%</span> : <span className="text-muted-foreground">Non</span>}</td>
+                          <td className="py-3 px-3">{lease.unpaid ? <span className="badge-danger">{formatCurrency(lease.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}</td>
+                        </tr>
+                      </SheetTrigger>
+                      <SheetContent>
+                        <SheetHeader><SheetTitle>{lease.tenantName}</SheetTitle></SheetHeader>
+                        <div className="mt-6 space-y-4">
+                          {!lease.isParticulier && lease.tenantSiren && (
+                            <a href={getPappersUrl(lease.tenantName, lease.tenantSiren)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors">
+                              <div className="h-10 w-10 rounded-lg bg-[hsl(220,55%,18%)] flex items-center justify-center text-white font-bold text-sm">P</div>
+                              <div className="flex-1"><p className="text-sm font-medium text-foreground">Voir sur Pappers</p><p className="text-xs text-muted-foreground">SIREN : {lease.tenantSiren}</p></div>
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            </a>
+                          )}
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-muted-foreground">Lots</div><div className="font-medium">{lots.map(l => `${l.name} (${l.type})`).join(", ")}</div>
+                            <div className="text-muted-foreground">Surface totale</div><div className="font-medium">{lots.reduce((s, l) => s + l.surface, 0)} m²</div>
+                            <div className="text-muted-foreground">Étages</div><div className="font-medium">{lots.map(l => l.floorName).filter((v, i, a) => a.indexOf(v) === i).join(", ")}</div>
+                            <div className="text-muted-foreground">Loyer €/m²</div><div className="font-medium">{lots.reduce((s, l) => s + l.surface, 0) > 0 ? (annualRent / lots.reduce((s, l) => s + l.surface, 0)).toFixed(0) : "–"} €</div>
+                            {lease.isVatApplicable && <><div className="text-muted-foreground">TVA</div><div className="font-medium">{lease.vatRate}%</div></>}
+                            {leaseHasTrienniale(lease.leaseType) && lease.triennialDate && <><div className="text-muted-foreground">Triennale</div><div className="font-medium">{new Date(lease.triennialDate).toLocaleDateString("fr-FR")}</div></>}
+                          </div>
                         </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                ))}
-                {leases.length === 0 && <tr><td colSpan={10} className="py-6 text-center text-muted-foreground">Aucun bail actif</td></tr>}
+                      </SheetContent>
+                    </Sheet>
+                  );
+                })}
+                {(!asset.leases || asset.leases.length === 0) && <tr><td colSpan={10} className="py-6 text-center text-muted-foreground">Aucun locataire</td></tr>}
               </tbody>
             </table>
           </motion.div>
@@ -145,7 +150,7 @@ const AssetDetail = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Étage", "Lot", "Type", "Surface", "Statut"].map(h => (
+                  {["Étage", "Lot", "Type", "Surface", "Locataire"].map(h => (
                     <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -157,15 +162,15 @@ const AssetDetail = () => {
                     <td className="py-3 px-3 text-foreground">{l.name}</td>
                     <td className="py-3 px-3"><span className="badge-neutral">{l.type}</span></td>
                     <td className="py-3 px-3 text-foreground">{l.surface.toLocaleString("fr-FR")} m²</td>
-                    <td className="py-3 px-3">{l.lease ? <span className="badge-success">Occupé – {l.lease.tenantName}</span> : <span className="badge-warning">Vacant</span>}</td>
+                    <td className="py-3 px-3"><span className="badge-success">Occupé – {l.tenantName}</span></td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border">
-                  <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total</td>
+                  <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total occupé</td>
                   <td className="py-3 px-3 font-semibold text-foreground">{totalLotSurface.toLocaleString("fr-FR")} m²</td>
-                  <td className="py-3 px-3"><span className={`font-semibold ${totalLotVacant > 0 ? "text-warning" : "text-success"}`}>{totalLotVacant > 0 ? `${totalLotVacant.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
+                  <td className="py-3 px-3"><span className={`font-semibold ${asset.vacantSurface > 0 ? "text-warning" : "text-success"}`}>{asset.vacantSurface > 0 ? `${asset.vacantSurface.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
                 </tr>
               </tfoot>
             </table>
@@ -211,7 +216,7 @@ const AssetDetail = () => {
                 { label: "Prix d'acquisition", value: formatCurrency(asset.acquisitionPrice) },
                 { label: "Date d'acquisition", value: asset.acquisitionDate ? new Date(asset.acquisitionDate).toLocaleDateString("fr-FR") : "–" },
                 { label: "Surface totale", value: `${asset.totalSurface.toLocaleString("fr-FR")} m²` },
-                { label: "Nombre de baux", value: leases.length.toString() },
+                { label: "Nombre de locataires", value: (asset.leases ?? []).length.toString() },
               ].map(item => (
                 <div key={item.label} className="flex justify-between py-2 border-b border-border/50">
                   <span className="text-muted-foreground">{item.label}</span>
