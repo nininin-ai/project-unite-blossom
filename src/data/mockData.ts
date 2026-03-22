@@ -91,7 +91,7 @@ export interface Tenant {
 
 export function getAssetLeases(asset: Asset): (Lease & { floorName: string; floorLevel: number; lotName: string; lotSurface: number; lotType: string })[] {
   return (asset.floors ?? []).flatMap(f =>
-    f.lots.filter(l => l.lease).map(l => ({
+    (f.lots ?? []).filter(l => l.lease).map(l => ({
       ...l.lease!,
       floorName: f.name,
       floorLevel: f.level,
