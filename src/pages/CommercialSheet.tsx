@@ -33,16 +33,13 @@ interface SheetData {
   depotGarantie: string;
   dpe: string;
   ges: string;
-  // Commerce specifics
   lineaireVitrine: string;
   surfaceVente: string;
   surfaceReserve: string;
   erpPmr: string;
-  // Bureau specifics
   cloisonnement: string;
   climatisation: string;
   ascenseur: string;
-  // Activité specifics
   hauteurLibre: string;
   porteSectionnelle: string;
   quai: string;
@@ -54,8 +51,8 @@ const CommercialSheet = () => {
   const asset = mockAssets.find((a) => a.id === id);
 
   const totalCharges = asset ? asset.charges.reduce((s, c) => s + c.annualAmount, 0) : 0;
-  const floorStr = asset ? asset.floors.map((f) => `Ét. ${f.floor}: ${f.surface} m² (${f.type})`).join(" | ") : "";
-  const vacantFloors = asset ? asset.floors.filter((f) => f.vacant) : [];
+  const floorStr = asset ? asset.floors.map((f) => `${f.name}: ${f.lots.map(l => `${l.surface} m² (${l.type})`).join(", ")}`).join(" | ") : "";
+  const vacantLots = asset ? asset.floors.flatMap((f) => f.lots.filter((l) => !l.lease)) : [];
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
@@ -69,16 +66,16 @@ const CommercialSheet = () => {
     floorDetail: floorStr,
     destination: asset?.type === "Commerce" ? "Commerce / Activité commerciale" : asset?.type === "Bureau" ? "Bureaux" : "Activité / Logistique",
     usagesPossibles: "",
-    etatGeneral: asset?.lastWorks ? `Derniers travaux : ${asset.lastWorks}` : "Bon état",
+    etatGeneral: "Bon état",
     vitrine: "",
     acces: "",
     hauteur: "",
     parking: "",
     exterieur: "",
     equipements: "",
-    disponibilite: vacantFloors.length > 0 ? "Immédiate" : "À convenir",
-    loyer: asset && vacantFloors.length > 0
-      ? `${formatCurrency(Math.round(asset.annualRent / asset.totalSurface * (vacantFloors.reduce((s, f) => s + f.surface, 0))))} /an`
+    disponibilite: vacantLots.length > 0 ? "Immédiate" : "À convenir",
+    loyer: asset && vacantLots.length > 0
+      ? `${formatCurrency(Math.round(asset.annualRent / asset.totalSurface * (vacantLots.reduce((s, l) => s + l.surface, 0))))} /an`
       : asset ? `${formatCurrency(asset.annualRent)} /an` : "",
     charges: `${formatCurrency(totalCharges)} /an`,
     taxeFonciere: "À définir",
@@ -125,7 +122,6 @@ const CommercialSheet = () => {
   };
 
   const removePhoto = (index: number) => setPhotos((prev) => prev.filter((_, i) => i !== index));
-
   const update = (key: keyof SheetData, value: string) => setData((prev) => ({ ...prev, [key]: value }));
 
   const handlePrint = () => {
@@ -145,11 +141,7 @@ const CommercialSheet = () => {
       {isPrintMode ? (
         <p className="text-sm text-foreground font-medium">{data[field] || "–"}</p>
       ) : (
-        <Input
-          value={data[field]}
-          onChange={(e) => update(field, e.target.value)}
-          className="h-8 text-sm border-border/60 bg-card"
-        />
+        <Input value={data[field]} onChange={(e) => update(field, e.target.value)} className="h-8 text-sm border-border/60 bg-card" />
       )}
     </div>
   );
@@ -160,11 +152,7 @@ const CommercialSheet = () => {
       {isPrintMode ? (
         <p className="text-sm text-foreground font-medium whitespace-pre-line">{data[field] || "–"}</p>
       ) : (
-        <Textarea
-          value={data[field]}
-          onChange={(e) => update(field, e.target.value)}
-          className="text-sm min-h-[48px] border-border/60 bg-card"
-        />
+        <Textarea value={data[field]} onChange={(e) => update(field, e.target.value)} className="text-sm min-h-[48px] border-border/60 bg-card" />
       )}
     </div>
   );
@@ -175,7 +163,6 @@ const CommercialSheet = () => {
 
   return (
     <>
-      {/* Controls — hidden on print */}
       <div className="p-4 flex items-center justify-between print:hidden sticky top-0 z-50 bg-background border-b border-border">
         <Link to={`/assets/${id}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Retour à la fiche
@@ -185,13 +172,8 @@ const CommercialSheet = () => {
         </Button>
       </div>
 
-      {/* Sheet — landscape A4 */}
       <div className="print:p-0 p-4 flex justify-center">
-        <div
-          className="bg-card border border-border rounded-xl shadow-sm w-full max-w-[1120px] print:max-w-none print:border-0 print:shadow-none print:rounded-none"
-          style={{ aspectRatio: "1.414 / 1" }}
-        >
-          {/* Header band */}
+        <div className="bg-card border border-border rounded-xl shadow-sm w-full max-w-[1120px] print:max-w-none print:border-0 print:shadow-none print:rounded-none" style={{ aspectRatio: "1.414 / 1" }}>
           <div className="bg-[hsl(220,55%,13%)] text-white px-8 py-5 rounded-t-xl print:rounded-none flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img src={logoEquimmox} alt="Equimmox" className="h-8 object-contain brightness-0 invert" />
@@ -210,7 +192,6 @@ const CommercialSheet = () => {
             </div>
           </div>
 
-          {/* Photos band */}
           {(photos.length > 0 || !isPrintMode) && (
             <div className="px-6 pt-4">
               <div className="flex gap-3 items-stretch">
@@ -218,20 +199,14 @@ const CommercialSheet = () => {
                   <div key={i} className="relative flex-1 h-[140px] rounded-lg overflow-hidden border border-border/50 group">
                     <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     {!isPrintMode && (
-                      <button
-                        onClick={() => removePhoto(i)}
-                        className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
+                      <button onClick={() => removePhoto(i)} className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
                 ))}
                 {!isPrintMode && photos.length < 3 && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 h-[140px] rounded-lg border-2 border-dashed border-border hover:border-accent/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-accent transition-colors"
-                  >
+                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 h-[140px] rounded-lg border-2 border-dashed border-border hover:border-accent/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-accent transition-colors">
                     <ImagePlus className="h-6 w-6" />
                     <span className="text-xs font-medium">Ajouter une photo</span>
                   </button>
@@ -241,40 +216,32 @@ const CommercialSheet = () => {
             </div>
           )}
 
-          {/* Body */}
           <div className="p-6 grid grid-cols-3 gap-5 text-sm overflow-y-auto" style={{ maxHeight: photos.length > 0 ? "calc(100% - 240px)" : "calc(100% - 80px)" }}>
-            {/* Column 1 — Désignation & Surfaces */}
             <div className="space-y-4">
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-accent" />
-                  Désignation
+                  <Building2 className="h-3.5 w-3.5 text-accent" /> Désignation
                 </h3>
                 <EditableField label="Type d'actif" field="assetType" />
                 <EditableField label="Adresse" field="address" />
                 <EditableField label="Ville" field="city" />
               </div>
-
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Ruler className="h-3.5 w-3.5 text-accent" />
-                  Surfaces
+                  <Ruler className="h-3.5 w-3.5 text-accent" /> Surfaces
                 </h3>
                 <EditableField label="Surface totale" field="totalSurface" />
                 <EditableTextarea label="Détail par étage" field="floorDetail" />
               </div>
-
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Zap className="h-3.5 w-3.5 text-accent" />
-                  Énergie
+                  <Zap className="h-3.5 w-3.5 text-accent" /> Énergie
                 </h3>
                 <EditableField label="DPE" field="dpe" />
                 <EditableField label="GES" field="ges" />
               </div>
             </div>
 
-            {/* Column 2 — Caractéristiques */}
             <div className="space-y-4">
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Destination & État</h3>
@@ -282,7 +249,6 @@ const CommercialSheet = () => {
                 <EditableField label="Usages possibles" field="usagesPossibles" />
                 <EditableField label="État général" field="etatGeneral" />
               </div>
-
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Caractéristiques</h3>
                 <EditableField label="Vitrine / Façade" field="vitrine" />
@@ -292,8 +258,6 @@ const CommercialSheet = () => {
                 <EditableField label="Extérieur" field="exterieur" />
                 <EditableField label="Équipements" field="equipements" />
               </div>
-
-              {/* Type-specific section */}
               {isCommerce && (
                 <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Commerce</h3>
@@ -303,7 +267,6 @@ const CommercialSheet = () => {
                   <EditableField label="ERP / PMR" field="erpPmr" />
                 </div>
               )}
-
               {isBureau && (
                 <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Bureau</h3>
@@ -313,7 +276,6 @@ const CommercialSheet = () => {
                   <EditableField label="ERP / PMR" field="erpPmr" />
                 </div>
               )}
-
               {isActivite && (
                 <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Activité</h3>
@@ -325,56 +287,43 @@ const CommercialSheet = () => {
               )}
             </div>
 
-            {/* Column 3 — Conditions financières & locatives */}
             <div className="space-y-4">
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Euro className="h-3.5 w-3.5 text-accent" />
-                  Conditions financières
+                  <Euro className="h-3.5 w-3.5 text-accent" /> Conditions financières
                 </h3>
                 <EditableField label="Loyer" field="loyer" />
                 <EditableField label="Charges" field="charges" />
                 <EditableField label="Taxe foncière" field="taxeFonciere" />
                 <EditableField label="Honoraires" field="honoraires" />
               </div>
-
               <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-accent" />
-                  Conditions locatives
+                  <Calendar className="h-3.5 w-3.5 text-accent" /> Conditions locatives
                 </h3>
                 <EditableField label="Type de bail" field="typeBail" />
                 <EditableField label="Durée" field="dureeBail" />
                 <EditableField label="Dépôt de garantie" field="depotGarantie" />
                 <EditableField label="Disponibilité" field="disponibilite" />
               </div>
-
-              {/* Recap box */}
               <div className="p-4 rounded-lg bg-[hsl(220,55%,13%)] text-white space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-white/60">Récapitulatif</h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/70">Surface</span>
-                    <span className="font-semibold">{data.totalSurface}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/70">Loyer</span>
-                    <span className="font-semibold">{data.loyer}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/70">Charges</span>
-                    <span className="font-semibold">{data.charges}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/70">Disponibilité</span>
-                    <span className="font-semibold">{data.disponibilite}</span>
-                  </div>
+                  {[
+                    { label: "Surface", value: data.totalSurface },
+                    { label: "Loyer", value: data.loyer },
+                    { label: "Charges", value: data.charges },
+                    { label: "Disponibilité", value: data.disponibilite },
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between text-sm">
+                      <span className="text-white/70">{item.label}</span>
+                      <span className="font-semibold">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Footer info */}
               <div className="text-[10px] text-muted-foreground leading-relaxed">
-                <p>Les informations contenues dans cette fiche sont données à titre indicatif et ne constituent pas un engagement contractuel. Elles sont susceptibles d'être modifiées sans préavis.</p>
+                <p>Les informations contenues dans cette fiche sont données à titre indicatif et ne constituent pas un engagement contractuel.</p>
                 <p className="mt-1 font-medium text-foreground">© Equimmox — {new Date().getFullYear()}</p>
               </div>
             </div>

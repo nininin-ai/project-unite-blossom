@@ -1,8 +1,8 @@
 import { useAssets } from "@/hooks/useAssets";
-import { mockAssets } from "@/data/mockData";
+import { mockAssets, getAssetLeases } from "@/data/mockData";
 import { fundTargets } from "@/data/marketData";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, ShieldAlert, TrendingUp, Info } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, TrendingUp, Info } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,9 +42,6 @@ const Dashboard = () => {
   const totalValue = safeAssets.reduce((s, a) => s + a.acquisitionPrice, 0);
 
   const triPondere = totalValue > 0 ? safeAssets.reduce((s, a) => s + a.yield * a.acquisitionPrice, 0) / totalValue : 0;
-  const risqueConsolide = totalValue > 0 ? safeAssets.reduce((s, a) => s + a.riskScore * a.acquisitionPrice, 0) / totalValue : 0;
-  const risqueLabel = risqueConsolide < 40 ? "Faible" : risqueConsolide < 65 ? "Modéré" : "Élevé";
-  const risqueBadgeClass = risqueConsolide < 40 ? "badge-success" : risqueConsolide < 65 ? "badge-warning" : "badge-danger";
 
   const rendementPondere = triPondere;
   const totalSurface = safeAssets.reduce((s, a) => s + a.totalSurface, 0);
@@ -54,10 +51,10 @@ const Dashboard = () => {
   const ecartRendement = rendementPondere - fundTargets.yieldTarget;
   const ecartVacance = vacancePonderee - fundTargets.vacancyTarget;
 
-  // Leases
-  const allTenants = safeAssets.flatMap(a => a.tenants.map(t => ({ ...t, assetName: a.name, assetId: a.id })));
-  const upcomingLeases = allTenants
-    .filter(t => t.endDate)
+  // Leases from hierarchical structure
+  const allLeases = safeAssets.flatMap(a => getAssetLeases(a).map(l => ({ ...l, assetName: a.name, assetId: a.id })));
+  const upcomingLeases = allLeases
+    .filter(l => l.endDate)
     .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
     .slice(0, 5);
   const hasLeases = upcomingLeases.length > 0;
@@ -76,7 +73,7 @@ const Dashboard = () => {
     { label: "Valeur sous gestion", value: formatCurrency(totalValue), icon: Building2, trend: `${safeAssets.length} actif${safeAssets.length > 1 ? "s" : ""}`, positive: true },
     { label: "Loyers annualisés", value: formatCurrency(totalRent), icon: TrendingUp, trend: totalRent > 0 ? "Actif" : "Aucun loyer", positive: totalRent > 0 },
     { label: "TRI moyen pondéré", value: `${triPondere.toFixed(1)}%`, icon: TrendingUp, trend: triPondere > fundTargets.yieldTarget ? "Au-dessus cible" : triPondere > 0 ? "Sous cible" : "Non renseigné", positive: triPondere > fundTargets.yieldTarget },
-    { label: "Risque consolidé", value: `${risqueConsolide.toFixed(0)}/100`, icon: ShieldAlert, trend: risqueLabel, positive: risqueConsolide < 65, badge: risqueBadgeClass },
+    { label: "Vacance pondérée", value: `${vacancePonderee.toFixed(1)}%`, icon: AlertTriangle, trend: vacancePonderee <= fundTargets.vacancyTarget ? "Sous cible" : "Au-dessus cible", positive: vacancePonderee <= fundTargets.vacancyTarget },
   ];
 
   return (
@@ -110,14 +107,8 @@ const Dashboard = () => {
             </div>
             <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
             <div className="flex items-center gap-1 mt-2">
-              {kpi.badge ? (
-                <span className={kpi.badge}>{kpi.trend}</span>
-              ) : (
-                <>
-                  {kpi.positive ? <ArrowUpRight className="h-3 w-3 text-success" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  <span className={`text-xs font-medium ${kpi.positive ? "text-success" : "text-destructive"}`}>{kpi.trend}</span>
-                </>
-              )}
+              {kpi.positive ? <ArrowUpRight className="h-3 w-3 text-success" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}
+              <span className={`text-xs font-medium ${kpi.positive ? "text-success" : "text-destructive"}`}>{kpi.trend}</span>
             </div>
           </motion.div>
         ))}
@@ -235,12 +226,12 @@ const Dashboard = () => {
           </h3>
           {hasLeases ? (
             <div className="space-y-3">
-              {upcomingLeases.map((lease) => {
+              {upcomingLeases.map((lease, idx) => {
                 const daysLeft = Math.ceil((new Date(lease.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                 return (
-                  <div key={lease.id || lease.name} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                  <div key={lease.id || idx} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{lease.name}</p>
+                      <p className="text-sm font-medium text-foreground">{lease.tenantName}</p>
                       <p className="text-xs text-muted-foreground">{lease.assetName}</p>
                     </div>
                     <div className="text-right">
@@ -254,7 +245,7 @@ const Dashboard = () => {
               })}
             </div>
           ) : (
-            <EmptyState message="Ajoutez des locataires à vos actifs (via Modifier → Locataires) pour voir les prochaines échéances." />
+            <EmptyState message="Ajoutez des locataires à vos actifs (via Modifier → Surfaces) pour voir les prochaines échéances." />
           )}
         </motion.div>
 
@@ -265,19 +256,20 @@ const Dashboard = () => {
           </h3>
           <div className="space-y-3">
             {safeAssets.map(asset => {
-              if (!asset.tenants || asset.tenants.length === 0) return null;
+              const leases = getAssetLeases(asset);
+              if (leases.length === 0) return null;
               const alerts: { text: string; level: "danger" | "warning" }[] = [];
-              const topTenant = asset.tenants.reduce((a, b) => a.currentRent > b.currentRent ? a : b);
+              const topLease = leases.reduce((a, b) => a.currentRent > b.currentRent ? a : b);
               if (asset.annualRent > 0) {
-                const dependency = topTenant.currentRent / asset.annualRent * 100;
-                if (dependency > 40) alerts.push({ text: `Dépendance locataire ${dependency.toFixed(0)}% (${topTenant.name})`, level: "danger" });
+                const dependency = topLease.currentRent / asset.annualRent * 100;
+                if (dependency > 40) alerts.push({ text: `Dépendance locataire ${dependency.toFixed(0)}% (${topLease.tenantName})`, level: "danger" });
               }
-              asset.tenants.forEach(t => {
-                if (!t.endDate) return;
-                const days = Math.ceil((new Date(t.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                if (days < 180 && days > 0) alerts.push({ text: `Échéance < 6 mois : ${t.name}`, level: "warning" });
+              leases.forEach(l => {
+                if (!l.endDate) return;
+                const days = Math.ceil((new Date(l.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                if (days < 180 && days > 0) alerts.push({ text: `Échéance < 6 mois : ${l.tenantName}`, level: "warning" });
               });
-              if (asset.tenants.some(t => t.unpaid)) alerts.push({ text: "Impayé existant", level: "danger" });
+              if (leases.some(l => l.unpaid)) alerts.push({ text: "Impayé existant", level: "danger" });
               if (alerts.length === 0) return null;
               return (
                 <div key={asset.id} className="py-2 border-b border-border/50 last:border-0 cursor-pointer hover:bg-muted/30 rounded px-1 -mx-1 transition" onClick={() => navigate(`/assets/${asset.id}`)}>
@@ -290,7 +282,7 @@ const Dashboard = () => {
                 </div>
               );
             })}
-            {safeAssets.every(a => !a.tenants || a.tenants.length === 0) && (
+            {safeAssets.every(a => getAssetLeases(a).length === 0) && (
               <EmptyState message="Ajoutez des locataires à vos actifs pour détecter les alertes de risque automatiquement." />
             )}
           </div>

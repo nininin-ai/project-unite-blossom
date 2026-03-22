@@ -1,5 +1,5 @@
 import { useAssets } from "@/hooks/useAssets";
-import { Asset, mockAssets } from "@/data/mockData";
+import { Asset, mockAssets, getAssetLeases } from "@/data/mockData";
 import { getMarketRef } from "@/data/marketData";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -52,11 +52,12 @@ function analyzeAsset(asset: Asset, portfolioAvgYield: number): AssetAnalysis {
   const cashFlowYield = asset.acquisitionPrice > 0 ? (cashFlow / asset.acquisitionPrice) * 100 : 0;
 
   const now = new Date();
-  const hasUnpaid = asset.tenants.some((t) => t.unpaid);
-  const unpaidTotal = asset.tenants.reduce((s, t) => s + (t.unpaidAmount || 0), 0);
+  const leases = getAssetLeases(asset);
+  const hasUnpaid = leases.some((t) => t.unpaid);
+  const unpaidTotal = leases.reduce((s, t) => s + (t.unpaidAmount || 0), 0);
   const sixMonths = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
-  const nearExpiry = asset.tenants.filter((t) => t.endDate && new Date(t.endDate) <= sixMonths).length;
-  const maxTenantRent = Math.max(...asset.tenants.map((t) => t.currentRent), 0);
+  const nearExpiry = leases.filter((t) => t.endDate && new Date(t.endDate) <= sixMonths).length;
+  const maxTenantRent = Math.max(...leases.map((t) => t.currentRent), 0);
   const tenantConcentration = asset.annualRent > 0 ? (maxTenantRent / asset.annualRent) * 100 : 0;
 
   // Market rental value
@@ -96,7 +97,6 @@ function analyzeAsset(asset: Asset, portfolioAvgYield: number): AssetAnalysis {
   if (unpaidTotal > 0)
     recommendations.push({ text: `Impayés de ${fmt(unpaidTotal)} — risque contentieux, recouvrement à initier`, level: unpaidTotal > asset.annualRent * 0.1 ? "critical" : "warning" });
 
-  // Market rental value insight
   if (marketRentGapPct < -20)
     recommendations.push({ text: `Loyer actuel (${actualRentPerSqm.toFixed(0)} €/m²) inférieur de ${Math.abs(marketRentGapPct).toFixed(0)}% à la valeur de marché (${marketRentPerSqm} €/m²) — potentiel de réversion à la hausse lors des renouvellements`, level: "info" });
   else if (marketRentGapPct < -10)
@@ -159,7 +159,7 @@ const Arbitrage = () => {
   const atRisk = analyses.filter((a) => a.healthScore < 60);
   const avgHealth = Math.round(analyses.reduce((s, a) => s + a.healthScore, 0) / analyses.length);
 
-  const missingTenants = safeAssets.filter((a) => !a.tenants || a.tenants.length === 0);
+  const missingTenants = safeAssets.filter((a) => getAssetLeases(a).length === 0);
   const missingCharges = safeAssets.filter((a) => !a.charges || a.charges.length === 0);
 
   return (
@@ -334,21 +334,18 @@ const Arbitrage = () => {
                             style={{
                               color: r.level === "critical" ? "hsl(0,72%,51%)"
                                 : r.level === "warning" ? "hsl(38,92%,50%)"
-                                : "hsl(var(--accent))",
+                                : "hsl(187,72%,40%)",
                             }} />
                           <span className="text-foreground">{r.text}</span>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                      <div className="flex items-center gap-3">
-                        <span className={a.verdict.className}>{a.verdict.label}</span>
-                        <p className="text-sm text-muted-foreground">{a.verdict.phrase}</p>
-                      </div>
-                      <Link to={`/assets/${a.asset.id}`}
-                        className="text-xs font-medium text-accent hover:underline flex items-center gap-1 shrink-0">
-                        Fiche actif <ArrowUpRight className="h-3 w-3" />
+                    <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                      <span className={a.verdict.className}>{a.verdict.label}</span>
+                      <span className="text-xs text-muted-foreground">{a.verdict.phrase}</span>
+                      <Link to={`/assets/${a.asset.id}`} className="ml-auto text-xs text-accent hover:underline flex items-center gap-1">
+                        Voir la fiche <ArrowUpRight className="h-3 w-3" />
                       </Link>
                     </div>
                   </div>
