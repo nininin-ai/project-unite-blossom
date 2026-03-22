@@ -51,8 +51,8 @@ const CommercialSheet = () => {
   const asset = mockAssets.find((a) => a.id === id);
 
   const totalCharges = asset ? asset.charges.reduce((s, c) => s + c.annualAmount, 0) : 0;
-  const floorStr = asset ? asset.floors.map((f) => `${f.name}: ${f.lots.map(l => `${l.surface} m² (${l.type})`).join(", ")}`).join(" | ") : "";
-  const vacantLots = asset ? asset.floors.flatMap((f) => f.lots.filter((l) => !l.lease)) : [];
+  // Build floor detail from leases
+  const floorStr = asset ? (asset.leases ?? []).flatMap(l => (l.floors ?? []).map(f => `${f.name}: ${f.lots.map(lot => `${lot.surface} m² (${lot.type})`).join(", ")}`)).join(" | ") : "";
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
@@ -73,10 +73,8 @@ const CommercialSheet = () => {
     parking: "",
     exterieur: "",
     equipements: "",
-    disponibilite: vacantLots.length > 0 ? "Immédiate" : "À convenir",
-    loyer: asset && vacantLots.length > 0
-      ? `${formatCurrency(Math.round(asset.annualRent / asset.totalSurface * (vacantLots.reduce((s, l) => s + l.surface, 0))))} /an`
-      : asset ? `${formatCurrency(asset.annualRent)} /an` : "",
+    disponibilite: asset && asset.vacantSurface > 0 ? "Immédiate" : "À convenir",
+    loyer: asset ? `${formatCurrency(asset.annualRent)} /an` : "",
     charges: `${formatCurrency(totalCharges)} /an`,
     taxeFonciere: "À définir",
     honoraires: "Selon barème",
@@ -112,9 +110,7 @@ const CommercialSheet = () => {
     toAdd.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setPhotos((prev) => [...prev.slice(0, 2), ev.target!.result as string]);
-        }
+        if (ev.target?.result) setPhotos((prev) => [...prev.slice(0, 2), ev.target!.result as string]);
       };
       reader.readAsDataURL(file);
     });
@@ -124,36 +120,19 @@ const CommercialSheet = () => {
   const removePhoto = (index: number) => setPhotos((prev) => prev.filter((_, i) => i !== index));
   const update = (key: keyof SheetData, value: string) => setData((prev) => ({ ...prev, [key]: value }));
 
-  const handlePrint = () => {
-    setIsPrintMode(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrintMode(false);
-    }, 100);
-  };
+  const handlePrint = () => { setIsPrintMode(true); setTimeout(() => { window.print(); setIsPrintMode(false); }, 100); };
 
   const EditableField = ({ label, field, icon }: { label: string; field: keyof SheetData; icon?: React.ReactNode }) => (
     <div className="space-y-1">
-      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
-        {icon}
-        {label}
-      </label>
-      {isPrintMode ? (
-        <p className="text-sm text-foreground font-medium">{data[field] || "–"}</p>
-      ) : (
-        <Input value={data[field]} onChange={(e) => update(field, e.target.value)} className="h-8 text-sm border-border/60 bg-card" />
-      )}
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">{icon}{label}</label>
+      {isPrintMode ? <p className="text-sm text-foreground font-medium">{data[field] || "–"}</p> : <Input value={data[field]} onChange={(e) => update(field, e.target.value)} className="h-8 text-sm border-border/60 bg-card" />}
     </div>
   );
 
   const EditableTextarea = ({ label, field }: { label: string; field: keyof SheetData }) => (
     <div className="space-y-1">
       <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</label>
-      {isPrintMode ? (
-        <p className="text-sm text-foreground font-medium whitespace-pre-line">{data[field] || "–"}</p>
-      ) : (
-        <Textarea value={data[field]} onChange={(e) => update(field, e.target.value)} className="text-sm min-h-[48px] border-border/60 bg-card" />
-      )}
+      {isPrintMode ? <p className="text-sm text-foreground font-medium whitespace-pre-line">{data[field] || "–"}</p> : <Textarea value={data[field]} onChange={(e) => update(field, e.target.value)} className="text-sm min-h-[48px] border-border/60 bg-card" />}
     </div>
   );
 
@@ -164,32 +143,18 @@ const CommercialSheet = () => {
   return (
     <>
       <div className="p-4 flex items-center justify-between print:hidden sticky top-0 z-50 bg-background border-b border-border">
-        <Link to={`/assets/${id}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Retour à la fiche
-        </Link>
-        <Button onClick={handlePrint} size="sm" className="gap-2">
-          <Printer className="h-4 w-4" /> Imprimer / PDF
-        </Button>
+        <Link to={`/assets/${id}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft className="h-4 w-4" /> Retour à la fiche</Link>
+        <Button onClick={handlePrint} size="sm" className="gap-2"><Printer className="h-4 w-4" /> Imprimer / PDF</Button>
       </div>
-
       <div className="print:p-0 p-4 flex justify-center">
         <div className="bg-card border border-border rounded-xl shadow-sm w-full max-w-[1120px] print:max-w-none print:border-0 print:shadow-none print:rounded-none" style={{ aspectRatio: "1.414 / 1" }}>
           <div className="bg-[hsl(220,55%,13%)] text-white px-8 py-5 rounded-t-xl print:rounded-none flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img src={logoEquimmox} alt="Equimmox" className="h-8 object-contain brightness-0 invert" />
               <div className="h-8 w-px bg-white/20" />
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-medium">Fiche de commercialisation</p>
-                <h1 className="text-lg font-bold">{data.designation}</h1>
-              </div>
+              <div><p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-medium">Fiche de commercialisation</p><h1 className="text-lg font-bold">{data.designation}</h1></div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium flex items-center gap-1.5 justify-end">
-                <MapPin className="h-3.5 w-3.5" />
-                {data.address}
-              </p>
-              <p className="text-xs text-white/60">{data.city}</p>
-            </div>
+            <div className="text-right"><p className="text-sm font-medium flex items-center gap-1.5 justify-end"><MapPin className="h-3.5 w-3.5" />{data.address}</p><p className="text-xs text-white/60">{data.city}</p></div>
           </div>
 
           {(photos.length > 0 || !isPrintMode) && (
@@ -198,18 +163,11 @@ const CommercialSheet = () => {
                 {photos.map((src, i) => (
                   <div key={i} className="relative flex-1 h-[140px] rounded-lg overflow-hidden border border-border/50 group">
                     <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                    {!isPrintMode && (
-                      <button onClick={() => removePhoto(i)} className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    {!isPrintMode && <button onClick={() => removePhoto(i)} className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3.5 w-3.5" /></button>}
                   </div>
                 ))}
                 {!isPrintMode && photos.length < 3 && (
-                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 h-[140px] rounded-lg border-2 border-dashed border-border hover:border-accent/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-accent transition-colors">
-                    <ImagePlus className="h-6 w-6" />
-                    <span className="text-xs font-medium">Ajouter une photo</span>
-                  </button>
+                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 h-[140px] rounded-lg border-2 border-dashed border-border hover:border-accent/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-accent transition-colors"><ImagePlus className="h-6 w-6" /><span className="text-xs font-medium">Ajouter une photo</span></button>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddPhoto} />
               </div>
@@ -218,114 +176,25 @@ const CommercialSheet = () => {
 
           <div className="p-6 grid grid-cols-3 gap-5 text-sm overflow-y-auto" style={{ maxHeight: photos.length > 0 ? "calc(100% - 240px)" : "calc(100% - 80px)" }}>
             <div className="space-y-4">
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-accent" /> Désignation
-                </h3>
-                <EditableField label="Type d'actif" field="assetType" />
-                <EditableField label="Adresse" field="address" />
-                <EditableField label="Ville" field="city" />
-              </div>
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Ruler className="h-3.5 w-3.5 text-accent" /> Surfaces
-                </h3>
-                <EditableField label="Surface totale" field="totalSurface" />
-                <EditableTextarea label="Détail par étage" field="floorDetail" />
-              </div>
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Zap className="h-3.5 w-3.5 text-accent" /> Énergie
-                </h3>
-                <EditableField label="DPE" field="dpe" />
-                <EditableField label="GES" field="ges" />
-              </div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-accent" /> Désignation</h3><EditableField label="Type d'actif" field="assetType" /><EditableField label="Adresse" field="address" /><EditableField label="Ville" field="city" /></div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2"><Ruler className="h-3.5 w-3.5 text-accent" /> Surfaces</h3><EditableField label="Surface totale" field="totalSurface" /><EditableTextarea label="Détail par étage" field="floorDetail" /></div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-accent" /> Énergie</h3><EditableField label="DPE" field="dpe" /><EditableField label="GES" field="ges" /></div>
             </div>
-
             <div className="space-y-4">
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Destination & État</h3>
-                <EditableField label="Destination" field="destination" />
-                <EditableField label="Usages possibles" field="usagesPossibles" />
-                <EditableField label="État général" field="etatGeneral" />
-              </div>
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Caractéristiques</h3>
-                <EditableField label="Vitrine / Façade" field="vitrine" />
-                <EditableField label="Accès" field="acces" />
-                <EditableField label="Hauteur sous plafond" field="hauteur" />
-                <EditableField label="Parking" field="parking" icon={<Car className="h-3 w-3" />} />
-                <EditableField label="Extérieur" field="exterieur" />
-                <EditableField label="Équipements" field="equipements" />
-              </div>
-              {isCommerce && (
-                <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Commerce</h3>
-                  <EditableField label="Linéaire vitrine" field="lineaireVitrine" />
-                  <EditableField label="Surface de vente" field="surfaceVente" />
-                  <EditableField label="Surface réserve" field="surfaceReserve" />
-                  <EditableField label="ERP / PMR" field="erpPmr" />
-                </div>
-              )}
-              {isBureau && (
-                <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Bureau</h3>
-                  <EditableField label="Cloisonnement" field="cloisonnement" />
-                  <EditableField label="Climatisation" field="climatisation" icon={<Wind className="h-3 w-3" />} />
-                  <EditableField label="Ascenseur" field="ascenseur" />
-                  <EditableField label="ERP / PMR" field="erpPmr" />
-                </div>
-              )}
-              {isActivite && (
-                <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Activité</h3>
-                  <EditableField label="Hauteur libre" field="hauteurLibre" />
-                  <EditableField label="Porte sectionnelle" field="porteSectionnelle" />
-                  <EditableField label="Quai" field="quai" />
-                  <EditableField label="Aire de manœuvre" field="aireManoeuvre" />
-                </div>
-              )}
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Destination & État</h3><EditableField label="Destination" field="destination" /><EditableField label="Usages possibles" field="usagesPossibles" /><EditableField label="État général" field="etatGeneral" /></div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Caractéristiques</h3><EditableField label="Vitrine / Façade" field="vitrine" /><EditableField label="Accès" field="acces" /><EditableField label="Hauteur sous plafond" field="hauteur" /><EditableField label="Parking" field="parking" icon={<Car className="h-3 w-3" />} /><EditableField label="Extérieur" field="exterieur" /><EditableField label="Équipements" field="equipements" /></div>
+              {isCommerce && <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20"><h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Commerce</h3><EditableField label="Linéaire vitrine" field="lineaireVitrine" /><EditableField label="Surface de vente" field="surfaceVente" /><EditableField label="Surface réserve" field="surfaceReserve" /><EditableField label="ERP / PMR" field="erpPmr" /></div>}
+              {isBureau && <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20"><h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Bureau</h3><EditableField label="Cloisonnement" field="cloisonnement" /><EditableField label="Climatisation" field="climatisation" icon={<Wind className="h-3 w-3" />} /><EditableField label="Ascenseur" field="ascenseur" /><EditableField label="ERP / PMR" field="erpPmr" /></div>}
+              {isActivite && <div className="space-y-3 p-4 rounded-lg bg-accent/5 border border-accent/20"><h3 className="text-xs font-bold uppercase tracking-wider text-accent">Spécificités Activité</h3><EditableField label="Hauteur libre" field="hauteurLibre" /><EditableField label="Porte sectionnelle" field="porteSectionnelle" /><EditableField label="Quai" field="quai" /><EditableField label="Aire de manœuvre" field="aireManoeuvre" /></div>}
             </div>
-
             <div className="space-y-4">
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Euro className="h-3.5 w-3.5 text-accent" /> Conditions financières
-                </h3>
-                <EditableField label="Loyer" field="loyer" />
-                <EditableField label="Charges" field="charges" />
-                <EditableField label="Taxe foncière" field="taxeFonciere" />
-                <EditableField label="Honoraires" field="honoraires" />
-              </div>
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-accent" /> Conditions locatives
-                </h3>
-                <EditableField label="Type de bail" field="typeBail" />
-                <EditableField label="Durée" field="dureeBail" />
-                <EditableField label="Dépôt de garantie" field="depotGarantie" />
-                <EditableField label="Disponibilité" field="disponibilite" />
-              </div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2"><Euro className="h-3.5 w-3.5 text-accent" /> Conditions financières</h3><EditableField label="Loyer" field="loyer" /><EditableField label="Charges" field="charges" /><EditableField label="Taxe foncière" field="taxeFonciere" /><EditableField label="Honoraires" field="honoraires" /></div>
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border/50"><h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-accent" /> Conditions locatives</h3><EditableField label="Type de bail" field="typeBail" /><EditableField label="Durée" field="dureeBail" /><EditableField label="Dépôt de garantie" field="depotGarantie" /><EditableField label="Disponibilité" field="disponibilite" /></div>
               <div className="p-4 rounded-lg bg-[hsl(220,55%,13%)] text-white space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-white/60">Récapitulatif</h3>
-                <div className="space-y-2">
-                  {[
-                    { label: "Surface", value: data.totalSurface },
-                    { label: "Loyer", value: data.loyer },
-                    { label: "Charges", value: data.charges },
-                    { label: "Disponibilité", value: data.disponibilite },
-                  ].map((item) => (
-                    <div key={item.label} className="flex justify-between text-sm">
-                      <span className="text-white/70">{item.label}</span>
-                      <span className="font-semibold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
+                <div className="space-y-2">{[{ label: "Surface", value: data.totalSurface }, { label: "Loyer", value: data.loyer }, { label: "Charges", value: data.charges }, { label: "Disponibilité", value: data.disponibilite }].map(item => <div key={item.label} className="flex justify-between text-sm"><span className="text-white/70">{item.label}</span><span className="font-semibold">{item.value}</span></div>)}</div>
               </div>
-              <div className="text-[10px] text-muted-foreground leading-relaxed">
-                <p>Les informations contenues dans cette fiche sont données à titre indicatif et ne constituent pas un engagement contractuel.</p>
-                <p className="mt-1 font-medium text-foreground">© Equimmox — {new Date().getFullYear()}</p>
-              </div>
+              <div className="text-[10px] text-muted-foreground leading-relaxed"><p>Les informations contenues dans cette fiche sont données à titre indicatif.</p><p className="mt-1 font-medium text-foreground">© Equimmox — {new Date().getFullYear()}</p></div>
             </div>
           </div>
         </div>

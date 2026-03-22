@@ -1,4 +1,4 @@
-import { mockAssets, mockDeals, getAssetLeases } from "@/data/mockData";
+import { mockAssets, mockDeals } from "@/data/mockData";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, CircleDollarSign, Crosshair, Layers, MapPin, ShieldAlert, Target, TrendingUp, Zap } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -12,28 +12,28 @@ const ExecutiveOverview = () => {
   const targetYield = 7.0;
   const yieldDelta = avgYield - targetYield;
   const avgVacancy = mockAssets.reduce((s, a) => s + (a.vacantSurface / a.totalSurface) * 100, 0) / mockAssets.length;
-  const activePipeline = mockDeals.filter((d) => d.status !== "Non éligible");
+  const activePipeline = mockDeals.filter(d => d.status !== "Non éligible");
   const totalPipeline = activePipeline.reduce((s, d) => s + d.amount, 0);
   const avgTRI = activePipeline.reduce((s, d) => s + d.triEstimated * d.amount, 0) / totalPipeline;
   const triDelta = avgTRI - targetYield;
-  const eligibleDeals = mockDeals.filter((d) => d.status === "Éligible").length;
-  const analyzedDeals = mockDeals.filter((d) => d.status !== "Non éligible").length;
+  const eligibleDeals = mockDeals.filter(d => d.status === "Éligible").length;
+  const analyzedDeals = mockDeals.filter(d => d.status !== "Non éligible").length;
   const eligibilityRate = analyzedDeals > 0 ? (eligibleDeals / analyzedDeals) * 100 : 0;
   const avgDaysInPipeline = Math.round(activePipeline.reduce((s, d) => s + d.daysInPipeline, 0) / activePipeline.length);
 
   const cityConcentration = mockAssets.reduce((acc, a) => { const city = a.city.split(" ")[0]; acc[city] = (acc[city] || 0) + a.acquisitionPrice; return acc; }, {} as Record<string, number>);
   const topCity = Object.entries(cityConcentration).sort((a, b) => b[1] - a[1])[0];
   const topCityPct = ((topCity[1] / totalAUM) * 100).toFixed(0);
-  const criticalVacancy = mockAssets.filter((a) => (a.vacantSurface / a.totalSurface) * 100 > 15);
+  const criticalVacancy = mockAssets.filter(a => (a.vacantSurface / a.totalSurface) * 100 > 15);
   const alerts: { text: string; level: "critical" | "warning" | "info"; icon: typeof AlertTriangle }[] = [];
   if (yieldDelta > 0) alerts.push({ text: `+${yieldDelta.toFixed(1)} pts au-dessus de la cible fonds`, level: "info", icon: TrendingUp });
   else alerts.push({ text: `${yieldDelta.toFixed(1)} pts en-dessous de la cible fonds`, level: "critical", icon: AlertTriangle });
   alerts.push({ text: `${fmt(totalPipeline)} de valeur potentielle en pipeline`, level: "info", icon: CircleDollarSign });
   if (Number(topCityPct) > 30) alerts.push({ text: `${topCityPct}% du parc concentré sur ${topCity[0]}`, level: "warning", icon: MapPin });
-  criticalVacancy.forEach((a) => alerts.push({ text: `${a.name} : vacance ${((a.vacantSurface / a.totalSurface) * 100).toFixed(0)}%`, level: "critical", icon: Building2 }));
-  const unpaidAssets = mockAssets.filter((a) => getAssetLeases(a).some((l) => l.unpaid));
+  criticalVacancy.forEach(a => alerts.push({ text: `${a.name} : vacance ${((a.vacantSurface / a.totalSurface) * 100).toFixed(0)}%`, level: "critical", icon: Building2 }));
+  const unpaidAssets = mockAssets.filter(a => (a.leases ?? []).some(l => l.unpaid));
   if (unpaidAssets.length > 0) alerts.push({ text: `${unpaidAssets.length} actif(s) avec impayés`, level: "critical", icon: ShieldAlert });
-  const performanceData = mockAssets.map((a) => ({ name: a.name.split(" ").slice(0, 2).join(" "), rendement: a.yield, cible: targetYield }));
+  const performanceData = mockAssets.map(a => ({ name: a.name.split(" ").slice(0, 2).join(" "), rendement: a.yield, cible: targetYield }));
 
   const heroKPIs = [
     { label: "Valeur sous gestion", value: fmt(totalAUM), icon: Layers, sub: `${mockAssets.length} actifs` },
@@ -69,7 +69,7 @@ const ExecutiveOverview = () => {
           </motion.div>
         ))}
       </div>
-      <motion.div {...anim(6)} className="kpi-card border-l-4" style={{ borderLeftColor: alerts.some((a) => a.level === "critical") ? "hsl(0,72%,51%)" : "hsl(38,92%,50%)" }}>
+      <motion.div {...anim(6)} className="kpi-card border-l-4" style={{ borderLeftColor: alerts.some(a => a.level === "critical") ? "hsl(0,72%,51%)" : "hsl(38,92%,50%)" }}>
         <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warning" />Alertes stratégiques prioritaires</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {alerts.map((alert, i) => (
@@ -93,17 +93,17 @@ const ExecutiveOverview = () => {
         </motion.div>
         <motion.div {...anim(8)} className="kpi-card">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2"><Crosshair className="h-4 w-4 text-accent" />Top deals pipeline — Score le plus élevé</h3>
-          <div className="space-y-2.5">{[...activePipeline].sort((a, b) => b.score - a.score).slice(0, 5).map((deal) => (<div key={deal.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"><div className="flex-1 min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.opportunity}</p><div className="flex items-center gap-2 mt-0.5"><span className="badge-accent">{deal.stage}</span><span className="text-[10px] text-muted-foreground">{deal.responsible}</span></div></div><div className="text-right ml-3"><p className="text-sm font-bold text-foreground">{fmt(deal.amount)}</p><div className="flex items-center gap-1 justify-end"><span className="text-[10px] text-muted-foreground">Score</span><span className={`text-xs font-bold ${deal.score >= 80 ? "text-success" : deal.score >= 60 ? "text-warning" : "text-destructive"}`}>{deal.score}</span></div></div></div>))}</div>
+          <div className="space-y-2.5">{[...activePipeline].sort((a, b) => b.score - a.score).slice(0, 5).map(deal => (<div key={deal.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"><div className="flex-1 min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.opportunity}</p><div className="flex items-center gap-2 mt-0.5"><span className="badge-accent">{deal.stage}</span><span className="text-[10px] text-muted-foreground">{deal.responsible}</span></div></div><div className="text-right ml-3"><p className="text-sm font-bold text-foreground">{fmt(deal.amount)}</p><div className="flex items-center gap-1 justify-end"><span className="text-[10px] text-muted-foreground">Score</span><span className={`text-xs font-bold ${deal.score >= 80 ? "text-success" : deal.score >= 60 ? "text-warning" : "text-destructive"}`}>{deal.score}</span></div></div></div>))}</div>
         </motion.div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div {...anim(9)} className="kpi-card">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" />Performance actifs — Création de valeur</h3>
-          <div className="space-y-2.5">{[...mockAssets].map((a) => ({ ...a, yieldDelta: a.yield - targetYield, vacancyRate: (a.vacantSurface / a.totalSurface) * 100 })).sort((a, b) => b.yieldDelta - a.yieldDelta).map((asset) => (<div key={asset.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"><div className="flex-1 min-w-0"><p className="text-sm font-medium text-foreground truncate">{asset.name}</p><div className="flex items-center gap-2 mt-0.5"><span className="text-[10px] text-muted-foreground">{asset.city}</span><span className="badge-neutral">{asset.type}</span></div></div><div className="text-right ml-3"><div className="flex items-center gap-1 justify-end">{asset.yieldDelta >= 0 ? <ArrowUpRight className="h-3 w-3 text-success" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}<span className={`text-sm font-bold ${asset.yieldDelta >= 0 ? "text-success" : "text-destructive"}`}>{asset.yieldDelta > 0 ? "+" : ""}{asset.yieldDelta.toFixed(1)}%</span></div><p className="text-[10px] text-muted-foreground">Vacance {asset.vacancyRate.toFixed(0)}%</p></div></div>))}</div>
+          <div className="space-y-2.5">{[...mockAssets].map(a => ({ ...a, yieldDelta: a.yield - targetYield, vacancyRate: (a.vacantSurface / a.totalSurface) * 100 })).sort((a, b) => b.yieldDelta - a.yieldDelta).map(asset => (<div key={asset.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"><div className="flex-1 min-w-0"><p className="text-sm font-medium text-foreground truncate">{asset.name}</p><div className="flex items-center gap-2 mt-0.5"><span className="text-[10px] text-muted-foreground">{asset.city}</span><span className="badge-neutral">{asset.type}</span></div></div><div className="text-right ml-3"><div className="flex items-center gap-1 justify-end">{asset.yieldDelta >= 0 ? <ArrowUpRight className="h-3 w-3 text-success" /> : <ArrowDownRight className="h-3 w-3 text-destructive" />}<span className={`text-sm font-bold ${asset.yieldDelta >= 0 ? "text-success" : "text-destructive"}`}>{asset.yieldDelta > 0 ? "+" : ""}{asset.yieldDelta.toFixed(1)}%</span></div><p className="text-[10px] text-muted-foreground">Vacance {asset.vacancyRate.toFixed(0)}%</p></div></div>))}</div>
         </motion.div>
       </div>
       <motion.div {...anim(10)} className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-primary px-6 py-4">
-        {[{ label: "Loyers annualisés", value: fmt(totalRent) }, { label: "Vacance moyenne", value: `${avgVacancy.toFixed(1)}%` }, { label: "Durée moy. pipeline", value: `${avgDaysInPipeline}j` }, { label: "Deals actifs", value: `${activePipeline.length}` }].map((m) => (<div key={m.label} className="text-center"><p className="text-[10px] uppercase tracking-wider text-primary-foreground/60 font-medium">{m.label}</p><p className="text-lg font-bold text-primary-foreground">{m.value}</p></div>))}
+        {[{ label: "Loyers annualisés", value: fmt(totalRent) }, { label: "Vacance moyenne", value: `${avgVacancy.toFixed(1)}%` }, { label: "Durée moy. pipeline", value: `${avgDaysInPipeline}j` }, { label: "Deals actifs", value: `${activePipeline.length}` }].map(m => (<div key={m.label} className="text-center"><p className="text-[10px] uppercase tracking-wider text-primary-foreground/60 font-medium">{m.label}</p><p className="text-lg font-bold text-primary-foreground">{m.value}</p></div>))}
       </motion.div>
     </div>
   );

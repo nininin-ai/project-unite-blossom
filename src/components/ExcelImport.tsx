@@ -21,21 +21,20 @@ const parseExcelToAssets = (data: Record<string, unknown>[]): Asset[] => {
       const city = String(row["Ville"] || row["city"] || "");
       const type = String(row["Type"] || row["type"] || "Bureau");
       const totalSurface = Number(row["Surface totale"] || row["totalSurface"] || row["Surface"] || 0);
-      const vacantSurface = Number(row["Surface vacante"] || row["vacantSurface"] || 0);
       const acquisitionPrice = Number(row["Prix d'acquisition"] || row["acquisitionPrice"] || row["Prix"] || 0);
       const acquisitionDate = String(row["Date d'acquisition"] || row["acquisitionDate"] || new Date().toISOString().slice(0, 10));
       const constructionYear = Number(row["Année de construction"] || row["constructionYear"] || 2000);
-      const annualRent = Number(row["Loyer annuel"] || row["annualRent"] || row["Loyer"] || 0);
-      const yieldVal = Number(row["Rendement"] || row["yield"] || 0);
 
       return {
         id: generateId(),
-        name, address, city, type, totalSurface, vacantSurface,
+        name, address, city, type, totalSurface,
+        vacantSurface: totalSurface,
         acquisitionPrice, acquisitionDate, constructionYear,
-        isCopropriete: false, annualRent,
-        yield: yieldVal,
+        isCopropriete: false,
+        annualRent: 0,
+        yield: 0,
         charges: [],
-        floors: [],
+        leases: [],
       } satisfies Asset;
     });
 };
