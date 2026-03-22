@@ -144,7 +144,15 @@ const AssetDetail = () => {
                     </Sheet>
                   );
                 })}
-                {leases.length === 0 && <tr><td colSpan={11} className="py-6 text-center text-muted-foreground">Aucun locataire actif</td></tr>}
+                {leases.length === 0 && (
+                  <tr><td colSpan={11} className="py-10 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Users className="h-8 w-8 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground">Aucun locataire actif</p>
+                      {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("surfaces")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter un locataire</Button>}
+                    </div>
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </motion.div>
