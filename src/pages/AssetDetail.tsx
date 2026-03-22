@@ -159,36 +159,44 @@ const AssetDetail = () => {
         </TabsContent>
 
         <TabsContent value="surfaces" className="space-y-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des surfaces</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Étage", "Lot", "Type", "Surface", "Statut"].map(h => (
-                    <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allLots.map(l => (
-                  <tr key={l.id} className="border-b border-border/50">
-                    <td className="py-3 px-3 font-medium text-foreground">{l.floorName}</td>
-                    <td className="py-3 px-3 text-foreground">{l.name}</td>
-                    <td className="py-3 px-3"><span className="badge-neutral">{l.type}</span></td>
-                    <td className="py-3 px-3 text-foreground">{l.surface.toLocaleString("fr-FR")} m²</td>
-                    <td className="py-3 px-3">{l.lease ? <span className="badge-success">Occupé – {l.lease.tenantName}</span> : <span className="badge-warning">Vacant</span>}</td>
+          {allLots.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card flex flex-col items-center justify-center py-12 gap-3">
+              <LayoutGrid className="h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Aucune surface renseignée</p>
+              {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("surfaces")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter des surfaces</Button>}
+            </motion.div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des surfaces</h3>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Étage", "Lot", "Type", "Surface", "Statut"].map(h => (
+                      <th key={h} className="table-header text-left py-3 px-3 whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border">
-                  <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total</td>
-                  <td className="py-3 px-3 font-semibold text-foreground">{totalLotSurface.toLocaleString("fr-FR")} m²</td>
-                  <td className="py-3 px-3"><span className={`font-semibold ${totalLotVacant > 0 ? "text-warning" : "text-success"}`}>{totalLotVacant > 0 ? `${totalLotVacant.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
-                </tr>
-              </tfoot>
-            </table>
-          </motion.div>
+                </thead>
+                <tbody>
+                  {allLots.map(l => (
+                    <tr key={l.id} className="border-b border-border/50">
+                      <td className="py-3 px-3 font-medium text-foreground">{l.floorName}</td>
+                      <td className="py-3 px-3 text-foreground">{l.name}</td>
+                      <td className="py-3 px-3"><span className="badge-neutral">{l.type}</span></td>
+                      <td className="py-3 px-3 text-foreground">{l.surface.toLocaleString("fr-FR")} m²</td>
+                      <td className="py-3 px-3">{l.lease ? <span className="badge-success">Occupé – {l.lease.tenantName}</span> : <span className="badge-warning">Vacant</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border">
+                    <td className="py-3 px-3 font-semibold text-foreground" colSpan={3}>Total</td>
+                    <td className="py-3 px-3 font-semibold text-foreground">{totalLotSurface.toLocaleString("fr-FR")} m²</td>
+                    <td className="py-3 px-3"><span className={`font-semibold ${totalLotVacant > 0 ? "text-warning" : "text-success"}`}>{totalLotVacant > 0 ? `${totalLotVacant.toLocaleString("fr-FR")} m² vacant` : "100% occupé"}</span></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </motion.div>
+          )}
         </TabsContent>
 
         <TabsContent value="charges" className="space-y-4">
