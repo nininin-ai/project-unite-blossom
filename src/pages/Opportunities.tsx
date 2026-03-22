@@ -1,4 +1,4 @@
-import { mockOpportunities as mockNewOpportunities } from "@/data/mockData";
+import { mockNewOpportunities } from "@/data/mockData";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Calendar, MapPin, Mail, Upload, FileSpreadsheet } from "lucide-react";

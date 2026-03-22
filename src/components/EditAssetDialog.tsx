@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
-import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getLeaseAnnualRent, leaseHasTrienniale } from "@/data/mockData";
+import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getAssetLeases } from "@/data/mockData";
 import { useUpdateAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
 
@@ -19,98 +19,58 @@ interface EditAssetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** Auto-generate lot name from floor level + alphabet index */
-const autoLotName = (floorLevel: number, lotIndex: number): string => {
-  const letter = String.fromCharCode(65 + (lotIndex % 26)); // A, B, C...
-  return `${floorLevel}${letter}`;
-};
-
-const emptyLot = (floorLevel: number, existingLots: Lot[]): Lot => ({
-  id: crypto.randomUUID(),
-  name: autoLotName(floorLevel, existingLots.length),
-  surface: 0,
-  type: "Bureau",
+const emptyLease = (): Lease => ({
+  id: crypto.randomUUID(), tenantName: "", tenantSiren: "", startDate: "", endDate: "", triennialDate: "",
+  leaseType: "3/6/9", deposit: 0, currentRent: 0, index: "ILAT", indexQuarter: "T1", indexYear: new Date().getFullYear(),
+  accompaniment: "", chargesManagement: "Réel", unpaid: false, isVatApplicable: false, vatRate: 20,
 });
+
+const emptyLot = (): Lot => ({ id: crypto.randomUUID(), name: "", surface: 0, type: "Bureau" });
 
 const emptyFloor = (level: number): Floor => ({ id: crypto.randomUUID(), name: `Étage ${level}`, level, lots: [] });
-const emptyLease = (): Lease => ({
-  id: crypto.randomUUID(), tenantName: "", isParticulier: false, tenantSiren: "", startDate: "", endDate: "", triennialDate: "",
-  leaseType: "3/6/9", deposit: 0, currentRent: 0, rentInputMode: "annual",
-  index: "ILAT", indexQuarter: "T1", indexYear: new Date().getFullYear(),
-  accompaniment: "", chargesManagement: "Réel", unpaid: false, isVatApplicable: false, vatRate: 20, floors: [],
-});
-const emptyCharge = (): Charge => ({ id: crypto.randomUUID(), nature: "", annualAmount: 0, rebillable: false, rebillablePercent: 0, comment: "" });
 
-const formatCurrency = (v: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+const emptyCharge = (): Charge => ({ id: crypto.randomUUID(), nature: "", annualAmount: 0, rebillable: false, rebillablePercent: 0, comment: "" });
 
 const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) => {
   const updateMutation = useUpdateAsset();
 
-  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
-  const [leases, setLeases] = useState<Lease[]>([]);
+  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false, annualRent: 0 });
+  const [floors, setFloors] = useState<Floor[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
-  const [expandedLeases, setExpandedLeases] = useState<Set<string>>(new Set());
   const [expandedFloors, setExpandedFloors] = useState<Set<string>>(new Set());
+  const [expandedLots, setExpandedLots] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (open) {
-      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete });
-      const parsedLeases: Lease[] = JSON.parse(JSON.stringify(asset.leases ?? []));
-      setLeases(parsedLeases);
+      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete, annualRent: asset.annualRent });
+      setFloors(JSON.parse(JSON.stringify(asset.floors ?? [])));
       setCharges((asset.charges ?? []).map(c => ({ ...c })));
-      // Expand all leases and floors by default
-      const leaseIds = new Set(parsedLeases.map(l => l.id));
-      const floorIds = new Set(parsedLeases.flatMap(l => (l.floors ?? []).map(f => f.id)));
-      setExpandedLeases(leaseIds);
-      setExpandedFloors(floorIds);
+      setExpandedFloors(new Set());
+      setExpandedLots(new Set());
     }
   }, [open, asset]);
 
-  const computedAnnualRent = useMemo(() => {
-    return leases.reduce((s, l) => s + getLeaseAnnualRent(l), 0);
-  }, [leases]);
-
-  const totalSurface = useMemo(() => {
-    return leases.reduce((s, l) => s + (l.floors ?? []).reduce((fs, f) => fs + f.lots.reduce((ls, lot) => ls + lot.surface, 0), 0), 0);
-  }, [leases]);
+  const totalSurface = useMemo(() => floors.reduce((s, f) => s + f.lots.reduce((ls, l) => ls + l.surface, 0), 0), [floors]);
+  const vacantSurface = useMemo(() => floors.reduce((s, f) => s + f.lots.filter(l => !l.lease).reduce((ls, l) => ls + l.surface, 0), 0), [floors]);
 
   const setField = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
-  const toggle = (set: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) => set(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // Lease operations
-  const updateLease = (li: number, key: keyof Lease, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, [key]: value } : l));
-  const removeLease = (li: number) => setLeases(prev => prev.filter((_, i) => i !== li));
-  const addLease = () => {
-    const l = emptyLease();
-    setLeases(prev => [...prev, l]);
-    setExpandedLeases(prev => new Set([...prev, l.id]));
-  };
+  const toggleFloor = (id: string) => setExpandedFloors(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleLot = (id: string) => setExpandedLots(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // Floor operations within a lease
-  const addFloorToLease = (li: number) => {
-    setLeases(prev => prev.map((l, i) => {
-      if (i !== li) return l;
-      const f = emptyFloor(l.floors.length);
-      setExpandedFloors(prev2 => new Set([...prev2, f.id]));
-      return { ...l, floors: [...l.floors, f] };
-    }));
-  };
-  const updateFloorInLease = (li: number, fi: number, key: keyof Floor, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, [key]: value } : f) } : l));
-  const removeFloorFromLease = (li: number, fi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.filter((_, j) => j !== fi) } : l));
-
-  // Lot operations within a floor within a lease
-  const addLotToFloor = (li: number, fi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: [...f.lots, emptyLot(f.level, f.lots)] } : f) } : l));
-  const updateLotInFloor = (li: number, fi: number, loi: number, key: keyof Lot, value: any) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: f.lots.map((lot, k) => k === loi ? { ...lot, [key]: value } : lot) } : f) } : l));
-  const removeLotFromFloor = (li: number, fi: number, loi: number) => setLeases(prev => prev.map((l, i) => i === li ? { ...l, floors: l.floors.map((f, j) => j === fi ? { ...f, lots: f.lots.filter((_, k) => k !== loi) } : f) } : l));
+  const updateFloor = (fi: number, key: keyof Floor, value: any) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, [key]: value } : f));
+  const addLot = (fi: number) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: [...f.lots, emptyLot()] } : f));
+  const updateLot = (fi: number, li: number, key: keyof Lot, value: any) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: f.lots.map((l, j) => j === li ? { ...l, [key]: value } : l) } : f));
+  const removeLot = (fi: number, li: number) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: f.lots.filter((_, j) => j !== li) } : f));
+  const addLease = (fi: number, li: number) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: f.lots.map((l, j) => j === li ? { ...l, lease: emptyLease() } : l) } : f));
+  const removeLease = (fi: number, li: number) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: f.lots.map((l, j) => j === li ? { ...l, lease: undefined } : l) } : f));
+  const updateLease = (fi: number, li: number, key: keyof Lease, value: any) => setFloors(prev => prev.map((f, i) => i === fi ? { ...f, lots: f.lots.map((l, j) => j === li && l.lease ? { ...l, lease: { ...l.lease, [key]: value } } : l) } : f));
 
   const updateCharge = (idx: number, key: keyof Charge, value: any) => setCharges(prev => prev.map((c, i) => i === idx ? { ...c, [key]: value } : c));
 
   const handleSave = () => {
-    const yieldVal = form.acquisitionPrice > 0 ? +((computedAnnualRent / form.acquisitionPrice) * 100).toFixed(2) : 0;
-    updateMutation.mutate({
-      id: asset.id,
-      updates: { ...form, totalSurface, annualRent: computedAnnualRent, vacantSurface: 0, yield: yieldVal, leases, charges },
-    }, { onSuccess: () => onOpenChange(false) });
+    const yieldVal = form.acquisitionPrice > 0 ? +((form.annualRent / form.acquisitionPrice) * 100).toFixed(2) : 0;
+    updateMutation.mutate({ id: asset.id, updates: { ...form, totalSurface, vacantSurface, yield: yieldVal, floors, charges } }, { onSuccess: () => onOpenChange(false) });
   };
 
   return (
@@ -120,7 +80,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
         <Tabs defaultValue="general" className="space-y-4">
           <TabsList className="bg-muted/50 p-1 flex-wrap h-auto">
             <TabsTrigger value="general" className="text-xs">Général</TabsTrigger>
-            <TabsTrigger value="locataires" className="text-xs">Locataires ({leases.length})</TabsTrigger>
+            <TabsTrigger value="surfaces" className="text-xs">Surfaces ({floors.length})</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Charges ({charges.length})</TabsTrigger>
             <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
           </TabsList>
@@ -135,137 +95,117 @@ const EditAssetDialog = ({ asset, open, onOpenChange }: EditAssetDialogProps) =>
               <div className="grid gap-1.5"><Label>Prix d'acquisition (€)</Label><Input type="number" value={form.acquisitionPrice} onChange={e => setField("acquisitionPrice", +e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Date d'acquisition</Label><Input type="date" value={form.acquisitionDate} onChange={e => setField("acquisitionDate", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Année construction</Label><Input type="number" value={form.constructionYear} onChange={e => setField("constructionYear", +e.target.value)} /></div>
+              <div className="grid gap-1.5"><Label>Loyer annuel (€)</Label><Input type="number" value={form.annualRent} onChange={e => setField("annualRent", +e.target.value)} /></div>
               <div className="flex items-center gap-3 col-span-full"><Switch checked={form.isCopropriete} onCheckedChange={v => setField("isCopropriete", v)} /><Label>Copropriété</Label></div>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Loyer annuel (calculé)</span><span className="font-semibold text-foreground">{formatCurrency(computedAnnualRent)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Surface totale (calculée)</span><span className="font-semibold text-foreground">{totalSurface.toLocaleString("fr-FR")} m²</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Surface vacante (calculée)</span><span className="font-semibold text-warning">{vacantSurface.toLocaleString("fr-FR")} m²</span></div>
             </div>
           </TabsContent>
 
-          {/* ── Locataires (Lease → Floor → Lot) ── */}
-          <TabsContent value="locataires" className="space-y-3">
+          {/* ── Surfaces (Floor → Lot → Lease hierarchy) ── */}
+          <TabsContent value="surfaces" className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Locataire → Étage → Lot</p>
-              <Button size="sm" variant="outline" onClick={addLease} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Locataire</Button>
+              <p className="text-sm text-muted-foreground">Actif → Étage / Niveau → Lot → Bail</p>
+              <Button size="sm" variant="outline" onClick={() => setFloors(f => [...f, emptyFloor(f.length)])} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Étage</Button>
             </div>
 
-            {leases.map((lease, li) => (
-              <div key={lease.id} className="rounded-lg border border-border">
-                {/* Lease header */}
-                <div className="flex items-center gap-2 p-3 bg-muted/30 cursor-pointer" onClick={() => toggle(setExpandedLeases, lease.id)}>
-                  {expandedLeases.has(lease.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <span className="text-sm font-semibold text-foreground">Locataire – {lease.tenantName || "Nouveau locataire"}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">{formatCurrency(getLeaseAnnualRent(lease))}/an</span>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={e => { e.stopPropagation(); removeLease(li); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+            {floors.map((floor, fi) => (
+              <div key={floor.id} className="rounded-lg border border-border">
+                {/* Floor header */}
+                <div className="flex items-center gap-2 p-3 bg-muted/30 cursor-pointer" onClick={() => toggleFloor(floor.id)}>
+                  {expandedFloors.has(floor.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <Input value={floor.name} onClick={e => e.stopPropagation()} onChange={e => updateFloor(fi, "name", e.target.value)} className="h-8 w-40 text-sm font-semibold" />
+                  <span className="text-xs text-muted-foreground">Niv. {floor.level}</span>
+                  <Input type="number" value={floor.level} onClick={e => e.stopPropagation()} onChange={e => updateFloor(fi, "level", +e.target.value)} className="h-8 w-16 text-xs" />
+                  <span className="text-xs text-muted-foreground ml-auto">{floor.lots.length} lot(s) · {floor.lots.reduce((s, l) => s + l.surface, 0)} m²</span>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); setFloors(p => p.filter((_, i) => i !== fi)); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
 
-                {expandedLeases.has(lease.id) && (
-                  <div className="p-3 space-y-3">
-                    {/* Lease fields */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Nom du locataire</Label><Input value={lease.tenantName} onChange={e => updateLease(li, "tenantName", e.target.value)} className="h-8 text-xs" /></div>
-                      <div className="grid gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px]">SIREN</Label>
-                          <div className="flex items-center gap-1"><Switch checked={lease.isParticulier} onCheckedChange={v => updateLease(li, "isParticulier", v)} className="scale-75" /><span className="text-[10px] text-muted-foreground">Particulier</span></div>
-                        </div>
-                        {!lease.isParticulier && <Input value={lease.tenantSiren || ""} onChange={e => updateLease(li, "tenantSiren", e.target.value)} className="h-8 text-xs" placeholder="SIREN" />}
-                        {lease.isParticulier && <p className="text-[10px] text-muted-foreground italic pt-1">Pas de SIREN</p>}
-                      </div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Type de bail</Label>
-                        <Select value={lease.leaseType} onValueChange={v => updateLease(li, "leaseType", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEASE_TYPES.map(lt => <SelectItem key={lt} value={lt}>{lt}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Début</Label><Input type="date" value={lease.startDate} onChange={e => updateLease(li, "startDate", e.target.value)} className="h-8 text-xs" /></div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Échéance</Label><Input type="date" value={lease.endDate} onChange={e => updateLease(li, "endDate", e.target.value)} className="h-8 text-xs" /></div>
-                      {leaseHasTrienniale(lease.leaseType) && (
-                        <div className="grid gap-0.5"><Label className="text-[10px]">Prochaine triennale</Label><Input type="date" value={lease.triennialDate} onChange={e => updateLease(li, "triennialDate", e.target.value)} className="h-8 text-xs" /></div>
-                      )}
-                      <div className="grid gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px]">Loyer ({lease.rentInputMode === "monthly" ? "mensuel" : "annuel"}) €</Label>
-                          <div className="flex items-center gap-1"><Switch checked={lease.rentInputMode === "monthly"} onCheckedChange={v => updateLease(li, "rentInputMode", v ? "monthly" : "annual")} className="scale-75" /><span className="text-[10px] text-muted-foreground">Mensuel</span></div>
-                        </div>
-                        <Input type="number" value={lease.currentRent} onChange={e => updateLease(li, "currentRent", +e.target.value)} className="h-8 text-xs" />
-                        {lease.rentInputMode === "monthly" && <p className="text-[10px] text-muted-foreground">= {formatCurrency(lease.currentRent * 12)}/an</p>}
-                      </div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Dépôt de garantie (€)</Label><Input type="number" value={lease.deposit} onChange={e => updateLease(li, "deposit", +e.target.value)} className="h-8 text-xs" /></div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Indice</Label>
-                        <Select value={lease.index} onValueChange={v => updateLease(li, "index", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{INDEX_TYPES.map(idx => <SelectItem key={idx} value={idx}>{idx}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      {lease.index !== "Aucun" && (
-                        <>
-                          <div className="grid gap-0.5"><Label className="text-[10px]">Trimestre réf.</Label>
-                            <Select value={lease.indexQuarter} onValueChange={v => updateLease(li, "indexQuarter", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{INDEX_QUARTERS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}</SelectContent></Select>
-                          </div>
-                          <div className="grid gap-0.5"><Label className="text-[10px]">Année réf.</Label><Input type="number" value={lease.indexYear} onChange={e => updateLease(li, "indexYear", +e.target.value)} className="h-8 text-xs" /></div>
-                        </>
-                      )}
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Accompagnement</Label><Input value={lease.accompaniment} onChange={e => updateLease(li, "accompaniment", e.target.value)} className="h-8 text-xs" /></div>
-                      <div className="grid gap-0.5"><Label className="text-[10px]">Gestion charges</Label>
-                        <Select value={lease.chargesManagement} onValueChange={v => updateLease(li, "chargesManagement", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{["Forfait", "Réel", "Provision", "Triple net"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                      </div>
-                      <div className="flex items-center gap-2 pt-4">
-                        <Switch checked={lease.unpaid} onCheckedChange={v => updateLease(li, "unpaid", v)} />
-                        <span className="text-xs text-muted-foreground">Impayé</span>
-                        {lease.unpaid && <Input type="number" className="w-24 h-7 text-xs ml-1" placeholder="Montant" value={lease.unpaidAmount || 0} onChange={e => updateLease(li, "unpaidAmount", +e.target.value)} />}
-                      </div>
-                      <div className="flex items-center gap-2 pt-4">
-                        <Switch checked={lease.isVatApplicable} onCheckedChange={v => updateLease(li, "isVatApplicable", v)} />
-                        <span className="text-xs text-muted-foreground">Assujetti TVA</span>
-                        {lease.isVatApplicable && (
-                          <Select value={String(lease.vatRate || 20)} onValueChange={v => updateLease(li, "vatRate", +v)}>
-                            <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>{VAT_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%</SelectItem>)}</SelectContent>
+                {expandedFloors.has(floor.id) && (
+                  <div className="p-3 space-y-2">
+                    <Button size="sm" variant="outline" onClick={() => addLot(fi)} className="gap-1.5 text-xs"><Plus className="h-3 w-3" /> Lot</Button>
+
+                    {floor.lots.map((lot, li) => (
+                      <div key={lot.id} className="rounded-md border border-border/60 bg-background">
+                        {/* Lot header */}
+                        <div className="flex items-center gap-2 p-2 cursor-pointer" onClick={() => toggleLot(lot.id)}>
+                          {expandedLots.has(lot.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          <Input value={lot.name} onClick={e => e.stopPropagation()} onChange={e => updateLot(fi, li, "name", e.target.value)} className="h-7 w-32 text-xs" placeholder="Nom du lot" />
+                          <Input type="number" value={lot.surface || ""} onClick={e => e.stopPropagation()} onChange={e => updateLot(fi, li, "surface", +e.target.value)} className="h-7 w-20 text-xs" placeholder="m²" />
+                          <Select value={lot.type} onValueChange={v => updateLot(fi, li, "type", v)}>
+                            <SelectTrigger className="h-7 w-28 text-xs" onClick={e => e.stopPropagation()}><SelectValue /></SelectTrigger>
+                            <SelectContent>{LOT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                           </Select>
+                          <span className={`text-[10px] font-medium ${lot.lease ? "text-success" : "text-warning"}`}>{lot.lease ? "Loué" : "Vacant"}</span>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive ml-auto" onClick={e => { e.stopPropagation(); removeLot(fi, li); }}><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+
+                        {expandedLots.has(lot.id) && (
+                          <div className="p-3 border-t border-border/40 bg-muted/20">
+                            {!lot.lease ? (
+                              <Button size="sm" variant="outline" onClick={() => addLease(fi, li)} className="gap-1.5 text-xs"><Plus className="h-3 w-3" /> Ajouter un bail</Button>
+                            ) : (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold text-foreground">Bail – {lot.lease.tenantName || "Nouveau"}</span>
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => removeLease(fi, li)}><Trash2 className="h-3 w-3 mr-1" /> Supprimer bail</Button>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Locataire</Label><Input value={lot.lease.tenantName} onChange={e => updateLease(fi, li, "tenantName", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">SIREN</Label><Input value={lot.lease.tenantSiren || ""} onChange={e => updateLease(fi, li, "tenantSiren", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Type de bail</Label>
+                                    <Select value={lot.lease.leaseType} onValueChange={v => updateLease(fi, li, "leaseType", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEASE_TYPES.map(lt => <SelectItem key={lt} value={lt}>{lt}</SelectItem>)}</SelectContent></Select>
+                                  </div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Début</Label><Input type="date" value={lot.lease.startDate} onChange={e => updateLease(fi, li, "startDate", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Échéance</Label><Input type="date" value={lot.lease.endDate} onChange={e => updateLease(fi, li, "endDate", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Triennale</Label><Input type="date" value={lot.lease.triennialDate} onChange={e => updateLease(fi, li, "triennialDate", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Loyer annuel (€)</Label><Input type="number" value={lot.lease.currentRent} onChange={e => updateLease(fi, li, "currentRent", +e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Dépôt de garantie (€)</Label><Input type="number" value={lot.lease.deposit} onChange={e => updateLease(fi, li, "deposit", +e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Indice</Label>
+                                    <Select value={lot.lease.index} onValueChange={v => updateLease(fi, li, "index", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{INDEX_TYPES.map(idx => <SelectItem key={idx} value={idx}>{idx}</SelectItem>)}</SelectContent></Select>
+                                  </div>
+                                  {lot.lease.index !== "Aucun" && (
+                                    <>
+                                      <div className="grid gap-0.5"><Label className="text-[10px]">Trimestre réf.</Label>
+                                        <Select value={lot.lease.indexQuarter} onValueChange={v => updateLease(fi, li, "indexQuarter", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{INDEX_QUARTERS.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}</SelectContent></Select>
+                                      </div>
+                                      <div className="grid gap-0.5"><Label className="text-[10px]">Année réf.</Label><Input type="number" value={lot.lease.indexYear} onChange={e => updateLease(fi, li, "indexYear", +e.target.value)} className="h-8 text-xs" /></div>
+                                    </>
+                                  )}
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Accompagnement</Label><Input value={lot.lease.accompaniment} onChange={e => updateLease(fi, li, "accompaniment", e.target.value)} className="h-8 text-xs" /></div>
+                                  <div className="grid gap-0.5"><Label className="text-[10px]">Gestion charges</Label>
+                                    <Select value={lot.lease.chargesManagement} onValueChange={v => updateLease(fi, li, "chargesManagement", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{["Forfait", "Réel", "Provision", "Triple net"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-4">
+                                    <Switch checked={lot.lease.unpaid} onCheckedChange={v => updateLease(fi, li, "unpaid", v)} />
+                                    <span className="text-xs text-muted-foreground">Impayé</span>
+                                    {lot.lease.unpaid && <Input type="number" className="w-24 h-7 text-xs ml-1" placeholder="Montant" value={lot.lease.unpaidAmount || 0} onChange={e => updateLease(fi, li, "unpaidAmount", +e.target.value)} />}
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-4">
+                                    <Switch checked={lot.lease.isVatApplicable} onCheckedChange={v => updateLease(fi, li, "isVatApplicable", v)} />
+                                    <span className="text-xs text-muted-foreground">Assujetti TVA</span>
+                                    {lot.lease.isVatApplicable && (
+                                      <Select value={String(lot.lease.vatRate || 20)} onValueChange={v => updateLease(fi, li, "vatRate", +v)}>
+                                        <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>{VAT_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%</SelectItem>)}</SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Floors inside this lease */}
-                    <div className="border-t border-border/40 pt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-foreground">Surfaces occupées</span>
-                        <Button size="sm" variant="outline" onClick={() => addFloorToLease(li)} className="gap-1.5 text-xs h-7"><Plus className="h-3 w-3" /> Étage</Button>
-                      </div>
-
-                      {lease.floors.map((floor, fi) => (
-                        <div key={floor.id} className="rounded-md border border-border/60 bg-background">
-                          <div className="flex items-center gap-2 p-2 cursor-pointer" onClick={() => toggle(setExpandedFloors, floor.id)}>
-                            {expandedFloors.has(floor.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                            <Input value={floor.name} onClick={e => e.stopPropagation()} onChange={e => updateFloorInLease(li, fi, "name", e.target.value)} className="h-7 w-32 text-xs" />
-                            <span className="text-[10px] text-muted-foreground">Niv.</span>
-                            <Input type="number" value={floor.level} onClick={e => e.stopPropagation()} onChange={e => updateFloorInLease(li, fi, "level", +e.target.value)} className="h-7 w-14 text-xs" />
-                            <span className="text-[10px] text-muted-foreground ml-auto">{floor.lots.length} lot(s) · {floor.lots.reduce((s, l) => s + l.surface, 0)} m²</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={e => { e.stopPropagation(); removeFloorFromLease(li, fi); }}><Trash2 className="h-3 w-3" /></Button>
-                          </div>
-
-                          {expandedFloors.has(floor.id) && (
-                            <div className="p-2 border-t border-border/40 space-y-1.5">
-                              <Button size="sm" variant="outline" onClick={() => addLotToFloor(li, fi)} className="gap-1.5 text-[10px] h-6"><Plus className="h-2.5 w-2.5" /> Lot</Button>
-                              {floor.lots.map((lot, loi) => (
-                                <div key={lot.id} className="flex items-center gap-2">
-                                  <Input value={lot.name} onChange={e => updateLotInFloor(li, fi, loi, "name", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nom" />
-                                  <Input type="number" value={lot.surface || ""} onChange={e => updateLotInFloor(li, fi, loi, "surface", +e.target.value)} className="h-7 w-20 text-xs" placeholder="m²" />
-                                  <Select value={lot.type} onValueChange={v => updateLotInFloor(li, fi, loi, "type", v)}>
-                                    <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>{LOT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeLotFromFloor(li, fi, loi)}><Trash2 className="h-3 w-3" /></Button>
-                                </div>
-                              ))}
-                              {floor.lots.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">Aucun lot</p>}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {lease.floors.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">Aucun étage défini</p>}
-                    </div>
+                    ))}
+                    {floor.lots.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Aucun lot sur cet étage</p>}
                   </div>
                 )}
               </div>
             ))}
-            {leases.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Aucun locataire défini</p>}
+            {floors.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Aucun étage défini</p>}
           </TabsContent>
 
           {/* ── Charges ── */}

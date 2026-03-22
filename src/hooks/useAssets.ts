@@ -1,32 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Asset, getAssetAnnualRent, getAssetVacantSurface } from "@/data/mockData";
+import { Asset } from "@/data/mockData";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
-const dbRowToAsset = (row: any): Asset => {
-  const base: Asset = {
-    id: row.id,
-    name: row.name,
-    address: row.address,
-    city: row.city,
-    type: row.type,
-    totalSurface: row.total_surface,
-    vacantSurface: row.vacant_surface,
-    acquisitionPrice: row.acquisition_price,
-    acquisitionDate: row.acquisition_date,
-    constructionYear: row.construction_year,
-    isCopropriete: row.is_copropriete,
-    annualRent: row.annual_rent,
-    yield: row.yield,
-    charges: (row.charges as unknown as Asset["charges"]) ?? [],
-    leases: (row.floors as unknown as Asset["leases"]) ?? [],
-  };
-  // Recompute derived fields
-  base.annualRent = getAssetAnnualRent(base);
-  base.vacantSurface = getAssetVacantSurface(base);
-  return base;
-};
+const dbRowToAsset = (row: any): Asset => ({
+  id: row.id,
+  name: row.name,
+  address: row.address,
+  city: row.city,
+  type: row.type,
+  totalSurface: row.total_surface,
+  vacantSurface: row.vacant_surface,
+  acquisitionPrice: row.acquisition_price,
+  acquisitionDate: row.acquisition_date,
+  constructionYear: row.construction_year,
+  isCopropriete: row.is_copropriete,
+  annualRent: row.annual_rent,
+  yield: row.yield,
+  charges: (row.charges as unknown as Asset["charges"]) ?? [],
+  floors: (row.floors as unknown as Asset["floors"]) ?? [],
+});
 
 const assetToDbRow = (asset: Asset, userId: string) => ({
   user_id: userId,
@@ -46,7 +40,7 @@ const assetToDbRow = (asset: Asset, userId: string) => ({
   last_works: "",
   tenants: [] as unknown as Json,
   charges: asset.charges as unknown as Json,
-  floors: asset.leases as unknown as Json, // store leases in floors column
+  floors: asset.floors as unknown as Json,
 });
 
 export const useAssets = () => {
@@ -131,7 +125,7 @@ export const useUpdateAsset = () => {
       if (updates.annualRent !== undefined) dbUpdates.annual_rent = updates.annualRent;
       if (updates.yield !== undefined) dbUpdates.yield = updates.yield;
       if (updates.charges !== undefined) dbUpdates.charges = updates.charges as unknown as Json;
-      if (updates.leases !== undefined) dbUpdates.floors = updates.leases as unknown as Json;
+      if (updates.floors !== undefined) dbUpdates.floors = updates.floors as unknown as Json;
 
       const { error } = await supabase.from("assets").update(dbUpdates).eq("id", id);
       if (error) throw error;
