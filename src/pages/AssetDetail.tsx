@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
@@ -23,6 +23,12 @@ const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
   const [editOpen, setEditOpen] = useState(false);
+  const [editDefaultTab, setEditDefaultTab] = useState("general");
+
+  const openEditOn = (tab: string) => {
+    setEditDefaultTab(tab);
+    setEditOpen(true);
+  };
 
   const mockAsset = mockAssets.find((a) => a.id === id);
   const asset = dbAsset ?? mockAsset;
@@ -47,7 +53,7 @@ const AssetDetail = () => {
       <div className="flex items-center justify-between">
         <Link to="/assets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft className="h-4 w-4" /> Retour au parc</Link>
         <div className="flex items-center gap-2">
-          {isDbAsset && <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="gap-1.5"><Pencil className="h-3.5 w-3.5" /> Modifier</Button>}
+          {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("general")} className="gap-1.5"><Pencil className="h-3.5 w-3.5" /> Modifier</Button>}
           <Link to={`/assets/${id}/fiche-commerciale`} className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 transition-colors"><FileSpreadsheet className="h-4 w-4" /> Fiche de commercialisation</Link>
         </div>
       </div>
