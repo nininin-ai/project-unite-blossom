@@ -200,31 +200,39 @@ const AssetDetail = () => {
         </TabsContent>
 
         <TabsContent value="charges" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-border">{["Nature", "Montant annuel", "Refacturation", "Commentaire"].map(h => <th key={h} className="table-header text-left py-3 px-3">{h}</th>)}</tr></thead>
-                <tbody>
-                  {asset.charges.map(c => (
-                    <tr key={c.id} className="border-b border-border/50">
-                      <td className="py-3 px-3 font-medium text-foreground">{c.nature}</td>
-                      <td className="py-3 px-3 text-foreground">{formatCurrency(c.annualAmount)}</td>
-                      <td className="py-3 px-3">{c.rebillable ? <span className="badge-success">{c.rebillablePercent}%</span> : <span className="badge-neutral">Non</span>}</td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground">{c.comment || "–"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot><tr className="border-t-2 border-border"><td className="py-3 px-3 font-semibold text-foreground">Total</td><td className="py-3 px-3 font-semibold text-foreground">{formatCurrency(totalCharges)}</td><td colSpan={2}></td></tr></tfoot>
-              </table>
+          {asset.charges.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card flex flex-col items-center justify-center py-12 gap-3">
+              <Receipt className="h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Aucune charge renseignée</p>
+              {isDbAsset && <Button size="sm" variant="outline" onClick={() => openEditOn("charges")} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Ajouter une charge</Button>}
             </motion.div>
-            <div className="kpi-card">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des charges</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart><Pie data={chargeData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">{chargeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 8, fontSize: 12 }} /></PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-3 mt-2">{chargeData.map((c, i) => <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />{c.name}</div>)}</div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="kpi-card overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border">{["Nature", "Montant annuel", "Refacturation", "Commentaire"].map(h => <th key={h} className="table-header text-left py-3 px-3">{h}</th>)}</tr></thead>
+                  <tbody>
+                    {asset.charges.map(c => (
+                      <tr key={c.id} className="border-b border-border/50">
+                        <td className="py-3 px-3 font-medium text-foreground">{c.nature}</td>
+                        <td className="py-3 px-3 text-foreground">{formatCurrency(c.annualAmount)}</td>
+                        <td className="py-3 px-3">{c.rebillable ? <span className="badge-success">{c.rebillablePercent}%</span> : <span className="badge-neutral">Non</span>}</td>
+                        <td className="py-3 px-3 text-xs text-muted-foreground">{c.comment || "–"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot><tr className="border-t-2 border-border"><td className="py-3 px-3 font-semibold text-foreground">Total</td><td className="py-3 px-3 font-semibold text-foreground">{formatCurrency(totalCharges)}</td><td colSpan={2}></td></tr></tfoot>
+                </table>
+              </motion.div>
+              <div className="kpi-card">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Répartition des charges</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart><Pie data={chargeData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">{chargeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 8, fontSize: 12 }} /></PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap justify-center gap-3 mt-2">{chargeData.map((c, i) => <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />{c.name}</div>)}</div>
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="info">
@@ -256,7 +264,7 @@ const AssetDetail = () => {
         </TabsContent>
       </Tabs>
 
-      {isDbAsset && asset && <EditAssetDialog asset={asset} open={editOpen} onOpenChange={setEditOpen} />}
+      {isDbAsset && asset && <EditAssetDialog asset={asset} open={editOpen} onOpenChange={setEditOpen} defaultTab={editDefaultTab} />}
     </div>
   );
 };
