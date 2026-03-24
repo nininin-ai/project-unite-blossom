@@ -21,6 +21,7 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
+          lease_id: string | null
           mime_type: string | null
           name: string
           user_id: string
@@ -31,6 +32,7 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          lease_id?: string | null
           mime_type?: string | null
           name: string
           user_id: string
@@ -41,6 +43,7 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          lease_id?: string | null
           mime_type?: string | null
           name?: string
           user_id?: string

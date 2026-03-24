@@ -1,0 +1,1 @@
+ALTER TABLE public.asset_documents ADD COLUMN lease_id text DEFAULT NULL;
