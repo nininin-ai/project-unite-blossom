@@ -10,6 +10,7 @@ export interface Lease {
   endDate: string;
   leaseType: string;
   deposit: number;
+  initialRent: number; // loyer à la signature du bail
   currentRent: number;
   rentInputMode: "annual" | "monthly"; // how the user entered the rent
   index: string; // ILC | ILAT | ICC | Aucun
@@ -154,6 +155,7 @@ const mkLease = (p: Partial<Lease> & { tenantName: string; currentRent: number }
   endDate: "",
   leaseType: "3/6/9",
   deposit: 0,
+  initialRent: p.currentRent ?? 0,
   rentInputMode: "annual",
   index: "ILAT",
   indexQuarter: "T3",

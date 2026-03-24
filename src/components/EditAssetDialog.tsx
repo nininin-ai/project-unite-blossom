@@ -23,7 +23,7 @@ interface EditAssetDialogProps {
 
 const emptyLease = (): Lease => ({
   id: crypto.randomUUID(), tenantName: "", tenantSiren: "", isParticulier: false, startDate: "", endDate: "",
-  leaseType: "3/6/9", deposit: 0, currentRent: 0, rentInputMode: "annual", index: "ILAT", indexQuarter: "T1", indexYear: new Date().getFullYear(),
+  leaseType: "3/6/9", deposit: 0, initialRent: 0, currentRent: 0, rentInputMode: "annual", index: "ILAT", indexQuarter: "T1", indexYear: new Date().getFullYear(),
   accompaniment: "", chargesManagement: "Réel", unpaid: false, isVatApplicable: false, vatRate: 20,
 });
 
@@ -174,7 +174,11 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
                                 </div>
                               )}
                               <div className="grid gap-0.5">
-                                <Label className="text-[10px]">Loyer {lot.lease.rentInputMode === "monthly" ? "mensuel" : "annuel"} (€)</Label>
+                                <Label className="text-[10px]">Loyer initial à la signature (€/an)</Label>
+                                <Input type="number" value={lot.lease.initialRent || ""} onChange={e => updateLease(fi, li, "initialRent", +e.target.value)} className="h-8 text-xs" placeholder="Loyer à la signature" />
+                              </div>
+                              <div className="grid gap-0.5">
+                                <Label className="text-[10px]">Loyer actuel {lot.lease.rentInputMode === "monthly" ? "mensuel" : "annuel"} (€)</Label>
                                 <div className="flex gap-1">
                                   <Input type="number" value={lot.lease.rentInputMode === "monthly" ? Math.round(lot.lease.currentRent / 12) : lot.lease.currentRent} onChange={e => {
                                     const val = +e.target.value;

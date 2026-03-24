@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt, Calculator } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
@@ -9,7 +9,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { useAsset } from "@/hooks/useAssets";
 import AssetDocuments from "@/components/AssetDocuments";
+import TenantDocuments from "@/components/TenantDocuments";
 import EditAssetDialog from "@/components/EditAssetDialog";
+import { computeIndexedRent } from "@/data/indexValues";
+import { Separator } from "@/components/ui/separator";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -24,6 +27,7 @@ const AssetDetail = () => {
   const { data: dbAsset, isLoading } = useAsset(id);
   const [editOpen, setEditOpen] = useState(false);
   const [editDefaultTab, setEditDefaultTab] = useState("general");
+  const [indexResults, setIndexResults] = useState<Record<string, ReturnType<typeof computeIndexedRent>>>({});
 
   const openEditOn = (tab: string) => {
     setEditDefaultTab(tab);
@@ -47,6 +51,14 @@ const AssetDetail = () => {
   const totalLotVacant = allLots.filter(l => !l.lease).reduce((s, l) => s + l.surface, 0);
 
   const isDbAsset = !!dbAsset;
+
+  const handleCalcIndexation = (leaseId: string) => {
+    const lease = leases.find(l => l.id === leaseId);
+    if (!lease || lease.index === "Aucun") return;
+    const initialRent = lease.initialRent || lease.currentRent;
+    const result = computeIndexedRent(initialRent, lease.index, lease.indexQuarter, lease.indexYear);
+    setIndexResults(prev => ({ ...prev, [leaseId]: result }));
+  };
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -121,7 +133,7 @@ const AssetDetail = () => {
                           <td className="py-3 px-3">{l.unpaid ? <span className="badge-danger">{formatCurrency(l.unpaidAmount || 0)}</span> : <span className="badge-success">OK</span>}</td>
                         </tr>
                       </SheetTrigger>
-                      <SheetContent>
+                      <SheetContent className="overflow-y-auto">
                         <SheetHeader><SheetTitle>{l.tenantName}</SheetTitle></SheetHeader>
                         <div className="mt-6 space-y-4">
                           {l.tenantSiren && !l.isParticulier && (
@@ -135,10 +147,64 @@ const AssetDetail = () => {
                             <div className="text-muted-foreground">Lot</div><div className="font-medium">{l.lotName} ({l.lotType})</div>
                             <div className="text-muted-foreground">Surface</div><div className="font-medium">{l.lotSurface} m²</div>
                             <div className="text-muted-foreground">Étage</div><div className="font-medium">{l.floorName}</div>
+                            <div className="text-muted-foreground">Loyer initial</div><div className="font-medium">{l.initialRent ? formatCurrency(l.initialRent) : "–"}</div>
+                            <div className="text-muted-foreground">Loyer actuel</div><div className="font-medium">{formatCurrency(l.currentRent)}</div>
                             <div className="text-muted-foreground">Loyer €/m²</div><div className="font-medium">{l.lotSurface > 0 ? (l.currentRent / l.lotSurface).toFixed(0) : "–"} €</div>
                             {triDate && <><div className="text-muted-foreground">Prochaine triennale</div><div className="font-medium">{new Date(triDate).toLocaleDateString("fr-FR")}</div></>}
                             {l.isVatApplicable && <><div className="text-muted-foreground">TVA</div><div className="font-medium">{l.vatRate}%</div></>}
                           </div>
+
+                          {/* Indexation Calculator */}
+                          {l.index !== "Aucun" && (
+                            <>
+                              <Separator />
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-xs font-semibold text-foreground">Indexation du loyer</h4>
+                                  <Button size="sm" variant="outline" onClick={() => handleCalcIndexation(l.id)} className="gap-1.5 h-7 text-xs">
+                                    <Calculator className="h-3 w-3" /> Calculer l'indexation
+                                  </Button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Indice : {l.index} · Référence : {l.indexQuarter} {l.indexYear} · Loyer initial : {l.initialRent ? formatCurrency(l.initialRent) : formatCurrency(l.currentRent)}
+                                </p>
+                                {indexResults[l.id] !== undefined && (
+                                  indexResults[l.id] === null ? (
+                                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                                      <p className="text-xs text-destructive">Données d'indice non disponibles pour {l.index} {l.indexQuarter} {l.indexYear}</p>
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+                                      <div className="grid grid-cols-2 gap-1.5 text-xs">
+                                        <div className="text-muted-foreground">Indice de référence ({l.indexQuarter} {l.indexYear})</div>
+                                        <div className="font-semibold text-foreground">{indexResults[l.id]!.refValue}</div>
+                                        <div className="text-muted-foreground">Dernier indice connu ({indexResults[l.id]!.latestQuarter} {indexResults[l.id]!.latestYear})</div>
+                                        <div className="font-semibold text-foreground">{indexResults[l.id]!.latestValue}</div>
+                                        <div className="text-muted-foreground">Variation</div>
+                                        <div className={`font-semibold ${indexResults[l.id]!.variation >= 0 ? "text-success" : "text-destructive"}`}>
+                                          {indexResults[l.id]!.variation >= 0 ? "+" : ""}{indexResults[l.id]!.variation.toFixed(2)}%
+                                        </div>
+                                      </div>
+                                      <Separator />
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs text-muted-foreground">Loyer indexé théorique</span>
+                                        <span className="text-sm font-bold text-foreground">{formatCurrency(indexResults[l.id]!.newRent)}/an</span>
+                                      </div>
+                                      {Math.abs(indexResults[l.id]!.newRent - l.currentRent) > 100 && (
+                                        <p className="text-[10px] text-warning">
+                                          Écart de {formatCurrency(Math.abs(indexResults[l.id]!.newRent - l.currentRent))} avec le loyer actuel ({formatCurrency(l.currentRent)})
+                                        </p>
+                                      )}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {/* Tenant Documents */}
+                          <Separator />
+                          {id && <TenantDocuments assetId={id} leaseId={l.id} />}
                         </div>
                       </SheetContent>
                     </Sheet>
