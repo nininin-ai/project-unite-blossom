@@ -1,6 +1,7 @@
 import { useAssets } from "@/hooks/useAssets";
 import { mockAssets, getAssetLeases } from "@/data/mockData";
-import { fundTargets } from "@/data/marketData";
+import { useFundTargets } from "@/hooks/useFundTargets";
+import FundTargetsPopover from "@/components/FundTargetsPopover";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, Calendar, TrendingUp, Info } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
@@ -20,6 +21,7 @@ const EmptyState = ({ message }: { message: string }) => (
 const Dashboard = () => {
   const { data: assets, isLoading } = useAssets();
   const navigate = useNavigate();
+  const { targets: fundTargets, updateTargets } = useFundTargets();
 
   if (isLoading) {
     return (
@@ -116,7 +118,10 @@ const Dashboard = () => {
 
       {/* Parc Actif vs Cible Fonds */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="kpi-card">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Parc Actif vs Cible Fonds</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-sm font-semibold text-foreground">Parc Actif vs Cible Fonds</h3>
+          <FundTargetsPopover targets={fundTargets} onUpdate={updateTargets} />
+        </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Parc actuel</p>
