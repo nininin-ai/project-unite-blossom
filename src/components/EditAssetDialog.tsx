@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getNextTriennialDate } from "@/data/mockData";
 import { useUpdateAsset } from "@/hooks/useAssets";
-import AssetDocuments from "@/components/AssetDocuments";
+import AIDocumentImport from "@/components/AIDocumentImport";
 
 const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
 
@@ -85,7 +85,10 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
             <TabsTrigger value="general" className="text-xs">Général</TabsTrigger>
             <TabsTrigger value="surfaces" className="text-xs">Locataires et Surfaces</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Charges ({charges.length})</TabsTrigger>
-            <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
+            <TabsTrigger value="ai-import" className="text-xs gap-1">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              Modification par IA
+            </TabsTrigger>
           </TabsList>
 
           {/* ── General ── */}
@@ -262,8 +265,125 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
             )}
           </TabsContent>
 
-          {/* ── Documents ── */}
-          <TabsContent value="documents"><AssetDocuments assetId={asset.id} /></TabsContent>
+          {/* ── AI Import ── */}
+          <TabsContent value="ai-import">
+            <AIDocumentImport
+              asset={asset}
+              onDataExtracted={(data, docType) => {
+                // Apply extracted data based on doc type
+                if (docType === "acte_vente") {
+                  if (data.adresse) setField("address", data.adresse);
+                  if (data.surface_globale_m2) {/* computed from floors */}
+                  if (data.type_usage) setField("type", data.type_usage);
+                  if (data.date_acquisition) setField("acquisitionDate", data.date_acquisition);
+                  if (data.prix_acquisition_net_vendeur) setField("acquisitionPrice", data.prix_acquisition_net_vendeur);
+                  if (data.etages && Array.isArray(data.etages)) {
+                    const newFloors = data.etages.map((e: any, i: number) => ({
+                      id: crypto.randomUUID(),
+                      name: e.nom || `Étage ${e.niveau ?? i}`,
+                      level: e.niveau ?? i,
+                      lots: e.surface_m2 ? [{ id: crypto.randomUUID(), name: `${e.niveau ?? i}A`, surface: e.surface_m2, type: "Bureau" as const }] : [],
+                    }));
+                    setFloors(newFloors);
+                  }
+                }
+                if (docType === "taxe_fonciere") {
+                  if (data.montant_taxe_fonciere) {
+                    const existing = charges.find(c => c.nature.toLowerCase().includes("taxe foncière"));
+                    if (existing) {
+                      setCharges(prev => prev.map(c => c.id === existing.id ? { ...c, annualAmount: data.montant_taxe_fonciere } : c));
+                    } else {
+                      setCharges(prev => [...prev, { id: crypto.randomUUID(), nature: "Taxe foncière", annualAmount: data.montant_taxe_fonciere, rebillable: false, rebillablePercent: 0, comment: data.annee_imposition ? `Année ${data.annee_imposition}` : "" }]);
+                    }
+                  }
+                }
+                if (docType === "charges") {
+                  const chargeMap: Record<string, string> = {
+                    honoraires_gestion: "Honoraires de gestion",
+                    assurance_pno: "Assurance PNO",
+                    teom: "TEOM",
+                    charges_copropriete: "Charges de copropriété",
+                    charges_travaux: "Charges travaux",
+                  };
+                  Object.entries(chargeMap).forEach(([key, label]) => {
+                    if (data[key]) {
+                      const existing = charges.find(c => c.nature.toLowerCase() === label.toLowerCase());
+                      if (existing) {
+                        setCharges(prev => prev.map(c => c.id === existing.id ? { ...c, annualAmount: data[key] } : c));
+                      } else {
+                        setCharges(prev => [...prev, { id: crypto.randomUUID(), nature: label, annualAmount: data[key], rebillable: key === "teom", rebillablePercent: key === "teom" ? 100 : 0, comment: "" }]);
+                      }
+                    }
+                  });
+                }
+                if (docType === "bail" || docType === "quittance") {
+                  // Try to find or create tenant in first available lot
+                  const tenantName = data.locataire_nom;
+                  if (tenantName) {
+                    let found = false;
+                    setFloors(prev => prev.map(f => ({
+                      ...f,
+                      lots: f.lots.map(l => {
+                        if (l.lease?.tenantName === tenantName) {
+                          found = true;
+                          const updates: any = {};
+                          if (docType === "bail") {
+                            if (data.date_debut) updates.startDate = data.date_debut;
+                            if (data.date_fin) updates.endDate = data.date_fin;
+                            if (data.loyer_annuel_initial) updates.initialRent = data.loyer_annuel_initial;
+                            if (data.loyer_annuel_initial) updates.currentRent = data.loyer_annuel_initial;
+                            if (data.indice_indexation) updates.index = data.indice_indexation;
+                            if (data.depot_garantie) updates.deposit = data.depot_garantie;
+                            if (data.locataire_siren) updates.tenantSiren = data.locataire_siren;
+                          }
+                          if (docType === "quittance") {
+                            if (data.loyer_mensuel) updates.currentRent = data.loyer_mensuel * 12;
+                            if (data.impaye !== undefined) updates.unpaid = data.impaye;
+                            if (data.montant_impaye) updates.unpaidAmount = data.montant_impaye;
+                          }
+                          return { ...l, lease: { ...l.lease!, ...updates } };
+                        }
+                        return l;
+                      }),
+                    })));
+                    // If tenant not found, create in first vacant lot or first lot
+                    if (!found) {
+                      setFloors(prev => {
+                        const newFloors = [...prev];
+                        let placed = false;
+                        for (const f of newFloors) {
+                          for (let li = 0; li < f.lots.length; li++) {
+                            if (!f.lots[li].lease) {
+                              const lease = emptyLease();
+                              lease.tenantName = tenantName;
+                              if (data.locataire_siren) lease.tenantSiren = data.locataire_siren;
+                              if (docType === "bail") {
+                                if (data.date_debut) lease.startDate = data.date_debut;
+                                if (data.date_fin) lease.endDate = data.date_fin;
+                                if (data.loyer_annuel_initial) { lease.initialRent = data.loyer_annuel_initial; lease.currentRent = data.loyer_annuel_initial; }
+                                if (data.indice_indexation) lease.index = data.indice_indexation;
+                                if (data.depot_garantie) lease.deposit = data.depot_garantie;
+                              }
+                              if (docType === "quittance") {
+                                if (data.loyer_mensuel) lease.currentRent = data.loyer_mensuel * 12;
+                                if (data.impaye !== undefined) lease.unpaid = data.impaye;
+                                if (data.montant_impaye) lease.unpaidAmount = data.montant_impaye;
+                              }
+                              f.lots[li].lease = lease;
+                              placed = true;
+                              break;
+                            }
+                          }
+                          if (placed) break;
+                        }
+                        return newFloors;
+                      });
+                    }
+                  }
+                }
+              }}
+            />
+          </TabsContent>
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-border">
