@@ -106,6 +106,33 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
               <div className="grid gap-1.5"><Label>Prix d'acquisition (€)</Label><Input type="number" value={form.acquisitionPrice} onChange={e => setField("acquisitionPrice", +e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Date d'acquisition</Label><Input type="date" value={form.acquisitionDate} onChange={e => setField("acquisitionDate", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Année construction</Label><Input type="number" value={form.constructionYear} onChange={e => setField("constructionYear", +e.target.value)} /></div>
+              <div className="grid gap-1.5">
+                <Label>Société détentrice</Label>
+                <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="justify-between font-normal">
+                      {form.companyId ? companies.find(c => c.id === form.companyId)?.name ?? "Sélectionner…" : "Aucune société"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Rechercher une société…" />
+                      <CommandList>
+                        <CommandEmpty>Aucune société trouvée</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem value="__none__" onSelect={() => { setField("companyId", ""); setCompanyOpen(false); }}>Aucune société</CommandItem>
+                          {companies.map(c => (
+                            <CommandItem key={c.id} value={c.name} onSelect={() => { setField("companyId", c.id); setCompanyOpen(false); }}>
+                              {c.name} <span className="ml-auto text-xs text-muted-foreground">QP {c.quotePart}%</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-3 col-span-full"><Switch checked={form.isCopropriete} onCheckedChange={v => setField("isCopropriete", v)} /><Label>Copropriété</Label></div>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
