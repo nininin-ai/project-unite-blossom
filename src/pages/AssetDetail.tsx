@@ -84,21 +84,37 @@ const AssetDetail = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{asset.name}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="h-3.5 w-3.5" /> {asset.address}, {asset.city}</p>
+            {company && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Building2 className="h-3 w-3" /> {company.name} · QP {company.quotePart}%</p>}
           </div>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {[
-          { label: "Loyer annuel", value: formatCurrency(asset.annualRent) },
-          { label: "Rendement", value: `${asset.yield}%` },
-          { label: "Vacance", value: `${vacancyRate}%` },
-        ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="kpi-card text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
-            <p className="text-lg font-bold text-foreground mt-1">{s.value}</p>
-          </motion.div>
-        ))}
+      <div className="space-y-2">
+        {company && (
+          <div className="flex items-center justify-end gap-2">
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant={showQP ? "default" : "outline"} onClick={() => setShowQP(!showQP)} className="gap-1.5 h-7 text-xs">
+                  {showQP ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+                  {showQP ? `QP ${company.quotePart}%` : "Global 100%"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs">{showQP ? "Affichage en quote-part" : "Cliquer pour afficher en quote-part"}</p></TooltipContent>
+            </UITooltip>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            { label: "Loyer annuel", value: formatCurrency(applyQP(asset.annualRent)) },
+            { label: "Rendement", value: `${asset.yield}%` },
+            { label: "Vacance", value: `${vacancyRate}%` },
+          ].map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="kpi-card text-center">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+              <p className="text-lg font-bold text-foreground mt-1">{s.value}</p>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <Tabs defaultValue="locataire" className="space-y-4">
