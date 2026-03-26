@@ -1,18 +1,20 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt, Calculator } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt, Calculator, ToggleLeft, ToggleRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAsset } from "@/hooks/useAssets";
+import { useCompanies } from "@/hooks/useCompanies";
 import AssetDocuments from "@/components/AssetDocuments";
 import TenantDocuments from "@/components/TenantDocuments";
 import EditAssetDialog from "@/components/EditAssetDialog";
 import { computeIndexedRent } from "@/data/indexValues";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -25,9 +27,11 @@ const getPappersUrl = (name: string, siren: string) => {
 const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
+  const { data: companies = [] } = useCompanies();
   const [editOpen, setEditOpen] = useState(false);
   const [editDefaultTab, setEditDefaultTab] = useState("general");
   const [indexResults, setIndexResults] = useState<Record<string, ReturnType<typeof computeIndexedRent>>>({});
+  const [showQP, setShowQP] = useState(false);
 
   const openEditOn = (tab: string) => {
     setEditDefaultTab(tab);
@@ -51,6 +55,10 @@ const AssetDetail = () => {
   const totalLotVacant = allLots.filter(l => !l.lease).reduce((s, l) => s + l.surface, 0);
 
   const isDbAsset = !!dbAsset;
+
+  const company = companies.find(c => c.id === asset.companyId);
+  const qp = showQP && company ? company.quotePart / 100 : 1;
+  const applyQP = (val: number) => Math.round(val * qp);
 
   const handleCalcIndexation = (leaseId: string) => {
     const lease = leases.find(l => l.id === leaseId);
@@ -76,21 +84,37 @@ const AssetDetail = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{asset.name}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="h-3.5 w-3.5" /> {asset.address}, {asset.city}</p>
+            {company && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Building2 className="h-3 w-3" /> {company.name} · QP {company.quotePart}%</p>}
           </div>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {[
-          { label: "Loyer annuel", value: formatCurrency(asset.annualRent) },
-          { label: "Rendement", value: `${asset.yield}%` },
-          { label: "Vacance", value: `${vacancyRate}%` },
-        ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="kpi-card text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
-            <p className="text-lg font-bold text-foreground mt-1">{s.value}</p>
-          </motion.div>
-        ))}
+      <div className="space-y-2">
+        {company && (
+          <div className="flex items-center justify-end gap-2">
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant={showQP ? "default" : "outline"} onClick={() => setShowQP(!showQP)} className="gap-1.5 h-7 text-xs">
+                  {showQP ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+                  {showQP ? `QP ${company.quotePart}%` : "Global 100%"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs">{showQP ? "Affichage en quote-part" : "Cliquer pour afficher en quote-part"}</p></TooltipContent>
+            </UITooltip>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            { label: "Loyer annuel", value: formatCurrency(applyQP(asset.annualRent)) },
+            { label: "Rendement", value: `${asset.yield}%` },
+            { label: "Vacance", value: `${vacancyRate}%` },
+          ].map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="kpi-card text-center">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+              <p className="text-lg font-bold text-foreground mt-1">{s.value}</p>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <Tabs defaultValue="locataire" className="space-y-4">

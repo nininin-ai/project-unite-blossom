@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Star } from "lucide-react";
+import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Settings, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import logoEquimmox from "@/assets/logo-equimmox.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +97,15 @@ const Layout = () => {
             <p className="text-[9px] font-medium text-sidebar-accent-foreground text-center truncate max-w-full">
               {user?.email?.split("@")[0] ?? ""}
             </p>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `flex items-center gap-1 text-[9px] transition-colors mt-1 ${isActive ? 'text-[hsl(var(--sidebar-primary))]' : 'text-muted-foreground hover:text-foreground'}`
+              }
+            >
+              <Settings className="h-3 w-3" />
+              Paramètres
+            </NavLink>
             <button
               onClick={signOut}
               className="flex items-center gap-1 text-[9px] text-muted-foreground hover:text-destructive transition-colors mt-1"

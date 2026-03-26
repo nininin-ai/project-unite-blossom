@@ -66,6 +66,7 @@ export type Database = {
           annual_rent: number
           charges: Json
           city: string
+          company_id: string | null
           construction_year: number
           created_at: string
           credits: Json
@@ -90,6 +91,7 @@ export type Database = {
           annual_rent?: number
           charges?: Json
           city?: string
+          company_id?: string | null
           construction_year?: number
           created_at?: string
           credits?: Json
@@ -114,6 +116,7 @@ export type Database = {
           annual_rent?: number
           charges?: Json
           city?: string
+          company_id?: string | null
           construction_year?: number
           created_at?: string
           credits?: Json
@@ -130,6 +133,44 @@ export type Database = {
           user_id?: string
           vacant_surface?: number
           yield?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          quote_part: number
+          siren: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          quote_part?: number
+          siren?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          quote_part?: number
+          siren?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

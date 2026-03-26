@@ -20,6 +20,7 @@ const dbRowToAsset = (row: any): Asset => ({
   yield: row.yield,
   charges: (row.charges as unknown as Asset["charges"]) ?? [],
   floors: (row.floors as unknown as Asset["floors"]) ?? [],
+  companyId: row.company_id ?? undefined,
 });
 
 const assetToDbRow = (asset: Asset, userId: string) => ({
@@ -126,6 +127,7 @@ export const useUpdateAsset = () => {
       if (updates.yield !== undefined) dbUpdates.yield = updates.yield;
       if (updates.charges !== undefined) dbUpdates.charges = updates.charges as unknown as Json;
       if (updates.floors !== undefined) dbUpdates.floors = updates.floors as unknown as Json;
+      if (updates.companyId !== undefined) dbUpdates.company_id = updates.companyId || null;
 
       const { error } = await supabase.from("assets").update(dbUpdates).eq("id", id);
       if (error) throw error;

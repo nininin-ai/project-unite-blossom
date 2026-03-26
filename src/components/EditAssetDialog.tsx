@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Asset, Floor, Lot, Lease, Charge, LEASE_TYPES, INDEX_TYPES, INDEX_QUARTERS, LOT_TYPES, VAT_RATES, getNextTriennialDate } from "@/data/mockData";
 import { useUpdateAsset } from "@/hooks/useAssets";
+import { useCompanies } from "@/hooks/useCompanies";
 import AIDocumentImport from "@/components/AIDocumentImport";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const ASSET_TYPES = ["Bureau", "Commerce", "Résidentiel", "Logistique", "Mixte"];
 
@@ -42,14 +45,16 @@ const emptyCharge = (): Charge => ({ id: crypto.randomUUID(), nature: "", annual
 
 const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: EditAssetDialogProps) => {
   const updateMutation = useUpdateAsset();
+  const { data: companies = [] } = useCompanies();
 
-  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false });
+  const [form, setForm] = useState({ name: "", address: "", city: "", type: "Bureau", acquisitionPrice: 0, acquisitionDate: "", constructionYear: 2000, isCopropriete: false, companyId: "" });
+  const [companyOpen, setCompanyOpen] = useState(false);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [charges, setCharges] = useState<Charge[]>([]);
 
   useEffect(() => {
     if (open) {
-      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete });
+      setForm({ name: asset.name, address: asset.address, city: asset.city, type: asset.type, acquisitionPrice: asset.acquisitionPrice, acquisitionDate: asset.acquisitionDate, constructionYear: asset.constructionYear, isCopropriete: asset.isCopropriete, companyId: asset.companyId || "" });
       setFloors(JSON.parse(JSON.stringify(asset.floors ?? [])));
       setCharges((asset.charges ?? []).map(c => ({ ...c })));
     }
@@ -73,7 +78,7 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
 
   const handleSave = () => {
     const yieldVal = form.acquisitionPrice > 0 ? +((annualRent / form.acquisitionPrice) * 100).toFixed(2) : 0;
-    updateMutation.mutate({ id: asset.id, updates: { ...form, annualRent, totalSurface, vacantSurface, yield: yieldVal, floors, charges } }, { onSuccess: () => onOpenChange(false) });
+    updateMutation.mutate({ id: asset.id, updates: { ...form, companyId: form.companyId || undefined, annualRent, totalSurface, vacantSurface, yield: yieldVal, floors, charges } }, { onSuccess: () => onOpenChange(false) });
   };
 
   return (
@@ -101,6 +106,33 @@ const EditAssetDialog = ({ asset, open, onOpenChange, defaultTab = "general" }: 
               <div className="grid gap-1.5"><Label>Prix d'acquisition (€)</Label><Input type="number" value={form.acquisitionPrice} onChange={e => setField("acquisitionPrice", +e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Date d'acquisition</Label><Input type="date" value={form.acquisitionDate} onChange={e => setField("acquisitionDate", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Année construction</Label><Input type="number" value={form.constructionYear} onChange={e => setField("constructionYear", +e.target.value)} /></div>
+              <div className="grid gap-1.5">
+                <Label>Société détentrice</Label>
+                <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="justify-between font-normal">
+                      {form.companyId ? companies.find(c => c.id === form.companyId)?.name ?? "Sélectionner…" : "Aucune société"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Rechercher une société…" />
+                      <CommandList>
+                        <CommandEmpty>Aucune société trouvée</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem value="__none__" onSelect={() => { setField("companyId", ""); setCompanyOpen(false); }}>Aucune société</CommandItem>
+                          {companies.map(c => (
+                            <CommandItem key={c.id} value={c.name} onSelect={() => { setField("companyId", c.id); setCompanyOpen(false); }}>
+                              {c.name} <span className="ml-auto text-xs text-muted-foreground">QP {c.quotePart}%</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-3 col-span-full"><Switch checked={form.isCopropriete} onCheckedChange={v => setField("isCopropriete", v)} /><Label>Copropriété</Label></div>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
