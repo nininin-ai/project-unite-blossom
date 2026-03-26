@@ -1,18 +1,20 @@
 import { useParams, Link } from "react-router-dom";
 import { mockAssets, getAssetLeases, getNextTriennialDate, formatIndexRef } from "@/data/mockData";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt, Calculator } from "lucide-react";
+import { ArrowLeft, Building2, FileSpreadsheet, MapPin, ExternalLink, Pencil, Loader2, Plus, Users, LayoutGrid, Receipt, Calculator, ToggleLeft, ToggleRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAsset } from "@/hooks/useAssets";
+import { useCompanies } from "@/hooks/useCompanies";
 import AssetDocuments from "@/components/AssetDocuments";
 import TenantDocuments from "@/components/TenantDocuments";
 import EditAssetDialog from "@/components/EditAssetDialog";
 import { computeIndexedRent } from "@/data/indexValues";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -25,9 +27,11 @@ const getPappersUrl = (name: string, siren: string) => {
 const AssetDetail = () => {
   const { id } = useParams();
   const { data: dbAsset, isLoading } = useAsset(id);
+  const { data: companies = [] } = useCompanies();
   const [editOpen, setEditOpen] = useState(false);
   const [editDefaultTab, setEditDefaultTab] = useState("general");
   const [indexResults, setIndexResults] = useState<Record<string, ReturnType<typeof computeIndexedRent>>>({});
+  const [showQP, setShowQP] = useState(false);
 
   const openEditOn = (tab: string) => {
     setEditDefaultTab(tab);
