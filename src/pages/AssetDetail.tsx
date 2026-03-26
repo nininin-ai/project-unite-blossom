@@ -56,6 +56,10 @@ const AssetDetail = () => {
 
   const isDbAsset = !!dbAsset;
 
+  const company = companies.find(c => c.id === asset.companyId);
+  const qp = showQP && company ? company.quotePart / 100 : 1;
+  const applyQP = (val: number) => Math.round(val * qp);
+
   const handleCalcIndexation = (leaseId: string) => {
     const lease = leases.find(l => l.id === leaseId);
     if (!lease || lease.index === "Aucun") return;
