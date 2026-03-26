@@ -65,6 +65,7 @@ export interface Asset {
   yield: number;
   charges: Charge[];
   floors: Floor[];
+  companyId?: string;
 }
 
 // ── Legacy compat type (kept for Tenant references in old code) ──

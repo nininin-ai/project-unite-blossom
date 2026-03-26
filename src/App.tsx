@@ -15,6 +15,7 @@ import InvestmentCommittee from "@/pages/InvestmentCommittee";
 import Opportunities from "@/pages/Opportunities";
 import OpportunityDetail from "@/pages/OpportunityDetail";
 import Auth from "@/pages/Auth";
+import Settings from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/deals/:id" element={<InvestmentCommittee />} />
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
