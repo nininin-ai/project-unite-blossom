@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Star } from "lucide-react";
+import { Building2, ChevronDown, FolderKanban, LayoutDashboard, LogOut, Scale, Star, MapPin, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import logoEquimmox from "@/assets/logo-equimmox.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,13 @@ const navGroups = [
     items: [
       { name: "Pipeline", to: "/deals", icon: FolderKanban },
       { name: "Opportunités", to: "/opportunities", icon: Star },
+    ],
+  },
+  {
+    label: "Marché",
+    items: [
+      { name: "Offres", to: "/offers", icon: MapPin },
+      { name: "Comparables", to: "/comps", icon: BarChart3 },
     ],
   },
 ];

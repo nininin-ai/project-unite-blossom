@@ -16,6 +16,8 @@ import Opportunities from "@/pages/Opportunities";
 import OpportunityDetail from "@/pages/OpportunityDetail";
 import Auth from "@/pages/Auth";
 import Settings from "@/pages/Settings";
+import Offers from "@/pages/Offers";
+import Comparables from "@/pages/Comparables";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -75,6 +77,8 @@ const App = () => (
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/opportunities/:id" element={<OpportunityDetail />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/comps" element={<Comparables />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
