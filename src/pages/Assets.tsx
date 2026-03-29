@@ -18,6 +18,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAssets, useDeleteAsset } from "@/hooks/useAssets";
+import { useCompanies } from "@/hooks/useCompanies";
+import { usePortfolios, useCreatePortfolio } from "@/hooks/usePortfolios";
+import PortfolioDialog from "@/components/PortfolioDialog";
+import { FolderKanban } from "lucide-react";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -29,11 +33,15 @@ type ViewMode = "cards" | "table";
 const Assets = () => {
   const [view, setView] = useState<ViewMode>("cards");
   const { data: dbAssets, isLoading } = useAssets();
+  const { data: companies = [] } = useCompanies();
+  const { data: portfolios = [] } = usePortfolios();
+  const createPortfolio = useCreatePortfolio();
   const deleteMutation = useDeleteAsset();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [vacancyOnly, setVacancyOnly] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
 
   const assets = dbAssets && dbAssets.length > 0 ? dbAssets : mockAssets;
 
@@ -67,6 +75,9 @@ const Assets = () => {
           <p className="text-sm text-muted-foreground mt-1">{assets.length} actifs sous gestion</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setPortfolioDialogOpen(true)}>
+            <FolderKanban className="h-3.5 w-3.5" />Portefeuille
+          </Button>
           <ImportExcelDialog />
           <AddAssetDialog />
         </div>
@@ -285,6 +296,18 @@ const Assets = () => {
           </Table>
         </div>
       )}
+
+      <PortfolioDialog
+        open={portfolioDialogOpen}
+        onOpenChange={setPortfolioDialogOpen}
+        portfolio={null}
+        assets={assets}
+        companies={companies}
+        onSave={(name, assetIds) => {
+          createPortfolio.mutate({ name, assetIds }, { onSuccess: () => setPortfolioDialogOpen(false) });
+        }}
+        saving={createPortfolio.isPending}
+      />
     </div>
   );
 };
