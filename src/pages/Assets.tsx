@@ -18,6 +18,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAssets, useDeleteAsset } from "@/hooks/useAssets";
+import { useCompanies } from "@/hooks/useCompanies";
+import { usePortfolios, useCreatePortfolio } from "@/hooks/usePortfolios";
+import PortfolioDialog from "@/components/PortfolioDialog";
+import { FolderKanban } from "lucide-react";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
