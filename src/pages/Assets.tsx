@@ -33,11 +33,15 @@ type ViewMode = "cards" | "table";
 const Assets = () => {
   const [view, setView] = useState<ViewMode>("cards");
   const { data: dbAssets, isLoading } = useAssets();
+  const { data: companies = [] } = useCompanies();
+  const { data: portfolios = [] } = usePortfolios();
+  const createPortfolio = useCreatePortfolio();
   const deleteMutation = useDeleteAsset();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [vacancyOnly, setVacancyOnly] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
 
   const assets = dbAssets && dbAssets.length > 0 ? dbAssets : mockAssets;
 
