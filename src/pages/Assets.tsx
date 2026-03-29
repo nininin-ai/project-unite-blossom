@@ -296,6 +296,18 @@ const Assets = () => {
           </Table>
         </div>
       )}
+
+      <PortfolioDialog
+        open={portfolioDialogOpen}
+        onOpenChange={setPortfolioDialogOpen}
+        portfolio={null}
+        assets={assets}
+        companies={companies}
+        onSave={(name, assetIds) => {
+          createPortfolio.mutate({ name, assetIds }, { onSuccess: () => setPortfolioDialogOpen(false) });
+        }}
+        saving={createPortfolio.isPending}
+      />
     </div>
   );
 };
