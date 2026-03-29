@@ -75,6 +75,9 @@ const Assets = () => {
           <p className="text-sm text-muted-foreground mt-1">{assets.length} actifs sous gestion</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setPortfolioDialogOpen(true)}>
+            <FolderKanban className="h-3.5 w-3.5" />Portefeuille
+          </Button>
           <ImportExcelDialog />
           <AddAssetDialog />
         </div>
