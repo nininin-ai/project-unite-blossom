@@ -60,8 +60,8 @@ const Dashboard = () => {
     );
   }
 
-  const allAssets = assets && assets.length > 0 ? assets : mockAssets;
-  const isDemo = !assets || assets.length === 0;
+  const allAssets = assets ?? [];
+  const isDemo = false;
 
   // Filter by portfolio
   const safeAssets = selectedPortfolio
